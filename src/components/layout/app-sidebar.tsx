@@ -27,6 +27,8 @@ import {
 import { navGroups } from '@/config/nav-config';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { useFilteredNavGroups } from '@/hooks/use-nav';
+import { signOut } from '@/features/auth/actions';
+import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -37,10 +39,18 @@ export default function AppSidebar() {
   const { isOpen } = useMediaQuery();
   const router = useRouter();
   const filteredGroups = useFilteredNavGroups(navGroups);
+  const [userEmail, setUserEmail] = React.useState<string>('');
+  const [userRole, setUserRole] = React.useState<string>('user');
 
   React.useEffect(() => {
-    // Side effects based on sidebar state changes
-  }, [isOpen]);
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setUserEmail(user.email ?? '');
+        setUserRole(user.user_metadata?.role ?? 'user');
+      }
+    });
+  }, []);
 
   return (
     <Sidebar collapsible='icon'>
@@ -130,9 +140,9 @@ export default function AppSidebar() {
                     <Icons.user className='size-4' />
                   </div>
                   <div className='grid flex-1 text-left text-sm leading-tight'>
-                    <span className='truncate font-semibold'>Admin</span>
+                    <span className='truncate font-semibold capitalize'>{userRole}</span>
                     <span className='truncate text-xs text-muted-foreground'>
-                      admin@assetflow.local
+                      {userEmail || 'Loading...'}
                     </span>
                   </div>
                   <Icons.chevronsDown className='ml-auto size-4' />
@@ -150,22 +160,13 @@ export default function AppSidebar() {
                       <Icons.user className='size-4' />
                     </div>
                     <div className='grid flex-1 text-left text-sm leading-tight'>
-                      <span className='truncate font-semibold'>Admin</span>
-                      <span className='truncate text-xs text-muted-foreground'>
-                        admin@assetflow.local
-                      </span>
+                      <span className='truncate font-semibold capitalize'>{userRole}</span>
+                      <span className='truncate text-xs text-muted-foreground'>{userEmail}</span>
                     </div>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={() => router.push('/dashboard/notifications')}>
-                    <Icons.notification className='mr-2 h-4 w-4' />
-                    Notifications
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => signOut()}>
                   <Icons.logout className='mr-2 h-4 w-4' />
                   Logout
                 </DropdownMenuItem>
