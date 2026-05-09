@@ -36,7 +36,8 @@ export function ThemeModeToggle() {
         Math.max(y, window.innerHeight - y)
       );
 
-      const clipPath = [`circle(0px at ${x}px ${y}px)`, `circle(${maxRadius}px at ${x}px ${y}px)`];
+      const expandedClip = `circle(${maxRadius}px at ${x}px ${y}px)`;
+      const collapsedClip = `circle(0px at ${x}px ${y}px)`;
 
       // Switching to LIGHT mode → "Sunrise" (new layer expands outward)
       if (isDark) {
@@ -48,7 +49,7 @@ export function ThemeModeToggle() {
 
         transition.ready.then(() => {
           document.documentElement.animate(
-            { clipPath },
+            { clipPath: [collapsedClip, expandedClip] },
             {
               duration: 500,
               easing: 'ease-in',
@@ -62,13 +63,16 @@ export function ThemeModeToggle() {
         });
       } else {
         // Switching to DARK mode → "Eclipse" (old layer shrinks inward)
+        // Ensure no data-transition-mode so old stays on top
+        delete document.documentElement.dataset.transitionMode;
+
         const transition = document.startViewTransition(() => {
           setTheme('dark');
         });
 
         transition.ready.then(() => {
           document.documentElement.animate(
-            { clipPath: clipPath.reverse() },
+            { clipPath: [expandedClip, collapsedClip] },
             {
               duration: 400,
               easing: 'ease-out',

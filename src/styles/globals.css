@@ -49,19 +49,26 @@
 }
 
 /* Default: old on top (for Eclipse / to-dark transition) */
+/* Old starts fully visible, then JS shrinks it via clip-path */
 ::view-transition-old(root) {
   z-index: 999;
+  clip-path: none;
 }
 
+/* New layer hidden underneath until old shrinks away */
 ::view-transition-new(root) {
   z-index: 1;
+  clip-path: none;
 }
 
 /* Sunrise mode: new on top (for to-light transition) */
+/* New starts clipped to nothing, then JS expands it */
 [data-transition-mode='sunrise']::view-transition-old(root) {
   z-index: 1;
+  clip-path: none;
 }
 
 [data-transition-mode='sunrise']::view-transition-new(root) {
   z-index: 999;
+  clip-path: circle(0px at 50% 50%);
 }
