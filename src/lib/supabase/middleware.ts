@@ -2,12 +2,12 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 /**
- * Simple in-memory rate limiter for auth endpoints.
- * In production, use Redis or Vercel KV.
+ * Simple in-memory rate limiter for auth form submissions only.
+ * Only triggers on POST to /auth/* (actual login/signup attempts).
  */
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_WINDOW = 60_000; // 1 minute
-const RATE_LIMIT_MAX = 10; // max 10 auth attempts per minute per IP
+const RATE_LIMIT_MAX = 20; // max 20 auth attempts per minute per IP
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
@@ -27,11 +27,11 @@ function isRateLimited(ip: string): boolean {
  * and protects dashboard routes.
  */
 export async function updateSession(request: NextRequest) {
-  // Rate limit auth API calls
-  if (request.nextUrl.pathname.startsWith('/auth')) {
+  // Rate limit only POST requests to auth callback (actual login attempts)
+  if (request.method === 'POST' && request.nextUrl.pathname.startsWith('/auth')) {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ?? 'unknown';
     if (isRateLimited(ip)) {
-      return new NextResponse('Too many requests', { status: 429 });
+      return new NextResponse('Too many requests. Please wait a moment.', { status: 429 });
     }
   }
 
