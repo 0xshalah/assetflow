@@ -22,15 +22,18 @@ export interface LoanRow {
 const STATUS_CONFIG: Record<LoanStatus, { label: string; className: string }> = {
   active: {
     label: 'Active',
-    className: 'bg-zinc-900 text-zinc-50 border-zinc-900 dark:bg-zinc-50 dark:text-zinc-900 dark:border-zinc-50'
+    className:
+      'bg-zinc-900 text-zinc-50 border-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100'
   },
   returned: {
     label: 'Returned',
-    className: 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700'
+    className:
+      'bg-zinc-50 text-zinc-500 border-zinc-200/80 dark:bg-zinc-900 dark:text-zinc-500 dark:border-zinc-800'
   },
   overdue: {
     label: 'Overdue',
-    className: 'bg-zinc-300 text-zinc-900 border-zinc-400 dark:bg-zinc-600 dark:text-zinc-100 dark:border-zinc-500'
+    className:
+      'bg-zinc-200 text-zinc-800 border-zinc-300 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600'
   }
 };
 
@@ -49,8 +52,10 @@ export const loanColumns: ColumnDef<LoanRow>[] = [
     ),
     cell: ({ row }) => (
       <div>
-        <div className='font-medium tracking-tight'>{row.getValue('itemName')}</div>
-        <div className='text-muted-foreground text-xs'>{row.original.itemCategory}</div>
+        <div className='font-medium' style={{ letterSpacing: '-0.01em' }}>
+          {row.getValue('itemName')}
+        </div>
+        <div className='text-muted-foreground mt-0.5 text-[12px]'>{row.original.itemCategory}</div>
       </div>
     ),
     meta: {
@@ -68,8 +73,10 @@ export const loanColumns: ColumnDef<LoanRow>[] = [
     ),
     cell: ({ row }) => (
       <div>
-        <div className='font-medium'>{row.getValue('borrowerName')}</div>
-        <div className='text-muted-foreground text-xs'>{row.original.borrowerContact}</div>
+        <div className='font-medium text-[14px]'>{row.getValue('borrowerName')}</div>
+        <div className='text-muted-foreground mt-0.5 text-[12px]'>
+          {row.original.borrowerContact}
+        </div>
       </div>
     ),
     enableColumnFilter: false
@@ -83,7 +90,7 @@ export const loanColumns: ColumnDef<LoanRow>[] = [
     cell: ({ row }) => {
       const date = row.getValue('loanDate') as Date;
       return (
-        <span className='text-muted-foreground text-sm'>
+        <span className='text-muted-foreground text-[13px] tabular-nums'>
           {new Intl.DateTimeFormat('id-ID', {
             day: 'numeric',
             month: 'short',
@@ -103,10 +110,10 @@ export const loanColumns: ColumnDef<LoanRow>[] = [
     cell: ({ row }) => {
       const date = row.getValue('returnDate') as Date | null;
       if (!date) {
-        return <span className='text-muted-foreground text-sm'>—</span>;
+        return <span className='text-muted-foreground/50 text-[13px]'>—</span>;
       }
       return (
-        <span className='text-muted-foreground text-sm'>
+        <span className='text-muted-foreground text-[13px] tabular-nums'>
           {new Intl.DateTimeFormat('id-ID', {
             day: 'numeric',
             month: 'short',
@@ -127,7 +134,10 @@ export const loanColumns: ColumnDef<LoanRow>[] = [
       const status = row.getValue('status') as LoanStatus;
       const config = STATUS_CONFIG[status];
       return (
-        <Badge variant='outline' className={config.className}>
+        <Badge
+          variant='outline'
+          className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${config.className}`}
+        >
           {config.label}
         </Badge>
       );

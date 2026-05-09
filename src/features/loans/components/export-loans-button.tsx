@@ -17,10 +17,8 @@ export function ExportLoansButton({ data }: ExportLoansButtonProps) {
   function handleExport() {
     startTransition(async () => {
       try {
-        // Dynamic import — xlsx is only loaded when user clicks export
         const XLSX = await import('xlsx');
 
-        // Transform data for clean export
         const exportData = data.map((loan) => ({
           'Nama Barang': loan.itemName,
           Kategori: loan.itemCategory,
@@ -46,24 +44,21 @@ export function ExportLoansButton({ data }: ExportLoansButtonProps) {
                 : 'Terlambat'
         }));
 
-        // Create workbook with professional formatting
         const worksheet = XLSX.utils.json_to_sheet(exportData);
 
-        // Set column widths for readability
         worksheet['!cols'] = [
-          { wch: 28 }, // Nama Barang
-          { wch: 16 }, // Kategori
-          { wch: 22 }, // Peminjam
-          { wch: 24 }, // Kontak
-          { wch: 20 }, // Tanggal Pinjam
-          { wch: 20 }, // Tanggal Kembali
-          { wch: 14 } // Status
+          { wch: 28 },
+          { wch: 16 },
+          { wch: 22 },
+          { wch: 24 },
+          { wch: 20 },
+          { wch: 20 },
+          { wch: 14 }
         ];
 
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Laporan Peminjaman');
 
-        // Generate filename with current date
         const dateStr = new Intl.DateTimeFormat('id-ID', {
           year: 'numeric',
           month: '2-digit',
@@ -72,7 +67,7 @@ export function ExportLoansButton({ data }: ExportLoansButtonProps) {
           .format(new Date())
           .replace(/\//g, '-');
 
-        XLSX.writeFile(workbook, `AssetFlow_Laporan_Peminjaman_${dateStr}.xlsx`);
+        XLSX.writeFile(workbook, `AssetFlow_Laporan_${dateStr}.xlsx`);
         toast.success('Laporan berhasil diekspor.');
       } catch (error) {
         console.error('Export failed:', error);
@@ -87,12 +82,12 @@ export function ExportLoansButton({ data }: ExportLoansButtonProps) {
       size='sm'
       onClick={handleExport}
       disabled={isPending || data.length === 0}
-      className='text-xs md:text-sm'
+      className='rounded-full px-4 text-[13px] font-medium border-zinc-200 dark:border-zinc-800 active:scale-[0.98] transition-transform'
     >
       {isPending ? (
-        <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />
+        <Icons.spinner className='mr-1.5 h-3.5 w-3.5 animate-spin' />
       ) : (
-        <IconFileSpreadsheet className='mr-2 h-4 w-4' />
+        <IconFileSpreadsheet className='mr-1.5 h-3.5 w-3.5' />
       )}
       Export
     </Button>

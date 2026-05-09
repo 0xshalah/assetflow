@@ -2,18 +2,18 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
 
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL environment variable is not set');
-}
-
 /**
- * Connection pool for Supabase PostgreSQL.
- * Uses the connection pooler URL (port 6543) for serverless environments.
+ * Connection to Supabase PostgreSQL.
+ * Uses individual connection params to avoid URL-encoding issues with special characters in passwords.
  * Set `prepare: false` when using Supabase's connection pooler (PgBouncer in transaction mode).
  */
-const connectionString = process.env.DATABASE_URL;
-
-const client = postgres(connectionString, {
+const client = postgres({
+  host: process.env.DB_HOST!,
+  port: Number(process.env.DB_PORT ?? 5432),
+  user: process.env.DB_USER!,
+  password: process.env.DB_PASSWORD!,
+  database: process.env.DB_NAME!,
+  ssl: 'require',
   prepare: false
 });
 

@@ -9,15 +9,18 @@ import { ItemCellAction } from './item-cell-action';
 const STATUS_CONFIG: Record<ItemStatus, { label: string; className: string }> = {
   available: {
     label: 'Available',
-    className: 'bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700'
+    className:
+      'bg-zinc-50 text-zinc-600 border-zinc-200/80 dark:bg-zinc-900 dark:text-zinc-400 dark:border-zinc-800'
   },
   borrowed: {
     label: 'Borrowed',
-    className: 'bg-zinc-200 text-zinc-900 border-zinc-300 dark:bg-zinc-700 dark:text-zinc-100 dark:border-zinc-600'
+    className:
+      'bg-zinc-900 text-zinc-50 border-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100'
   },
   maintenance: {
     label: 'Maintenance',
-    className: 'bg-zinc-300 text-zinc-800 border-zinc-400 dark:bg-zinc-600 dark:text-zinc-200 dark:border-zinc-500'
+    className:
+      'bg-zinc-200 text-zinc-700 border-zinc-300 dark:bg-zinc-700 dark:text-zinc-300 dark:border-zinc-600'
   }
 };
 
@@ -43,7 +46,9 @@ export const itemColumns: ColumnDef<Item>[] = [
       <DataTableColumnHeader column={column} title='Nama Barang' />
     ),
     cell: ({ row }) => (
-      <div className='font-medium tracking-tight'>{row.getValue('name')}</div>
+      <span className='font-medium' style={{ letterSpacing: '-0.01em' }}>
+        {row.getValue('name')}
+      </span>
     ),
     meta: {
       label: 'Nama',
@@ -59,7 +64,7 @@ export const itemColumns: ColumnDef<Item>[] = [
       <DataTableColumnHeader column={column} title='Kategori' />
     ),
     cell: ({ row }) => (
-      <span className='text-muted-foreground text-sm'>{row.getValue('category')}</span>
+      <span className='text-muted-foreground text-[13px]'>{row.getValue('category')}</span>
     ),
     meta: {
       label: 'Kategori',
@@ -79,7 +84,10 @@ export const itemColumns: ColumnDef<Item>[] = [
       const status = row.getValue('status') as ItemStatus;
       const config = STATUS_CONFIG[status];
       return (
-        <Badge variant='outline' className={config.className}>
+        <Badge
+          variant='outline'
+          className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${config.className}`}
+        >
           {config.label}
         </Badge>
       );
@@ -101,7 +109,7 @@ export const itemColumns: ColumnDef<Item>[] = [
     cell: ({ row }) => {
       const date = row.getValue('createdAt') as Date;
       return (
-        <span className='text-muted-foreground text-sm'>
+        <span className='text-muted-foreground text-[13px] tabular-nums'>
           {new Intl.DateTimeFormat('id-ID', {
             day: 'numeric',
             month: 'short',

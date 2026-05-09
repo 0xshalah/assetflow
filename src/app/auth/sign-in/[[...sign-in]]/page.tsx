@@ -1,11 +1,7 @@
-import { Metadata } from 'next';
-import SignInViewPage from '@/features/auth/components/sign-in-view';
+import { LoginForm } from '@/features/auth/components/login-form';
 
-export const metadata: Metadata = {
-  title: 'Authentication | Sign In',
-  description: 'Sign In page for authentication.'
-};
+export const metadata = { title: 'Sign In — AssetFlow' };
 
-export default async function Page() {
-  return <SignInViewPage />;
+export default function SignInPage() {
+  return <LoginForm />;
 }

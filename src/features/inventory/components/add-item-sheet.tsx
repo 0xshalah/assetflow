@@ -62,36 +62,45 @@ export function AddItemSheet() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button className='text-xs md:text-sm'>
-          <Icons.add className='mr-2 h-4 w-4' />
+        <Button size='sm' className='rounded-full px-4 text-[13px] font-medium'>
+          <Icons.add className='mr-1.5 h-3.5 w-3.5' />
           Add Item
         </Button>
       </SheetTrigger>
-      <SheetContent side='right' className='sm:max-w-md'>
+      <SheetContent side='right' className='sm:max-w-[420px]'>
         <SheetHeader>
-          <SheetTitle className='text-lg tracking-tight'>Tambah Barang Baru</SheetTitle>
-          <SheetDescription>
+          <SheetTitle className='text-xl font-semibold' style={{ letterSpacing: '-0.02em' }}>
+            Tambah Barang
+          </SheetTitle>
+          <SheetDescription className='text-[14px]'>
             Masukkan detail barang yang akan ditambahkan ke inventaris.
           </SheetDescription>
         </SheetHeader>
 
-        <form action={formAction} className='flex flex-1 flex-col gap-6 py-6'>
-          <div className='space-y-2'>
-            <Label htmlFor='name'>Nama Barang</Label>
+        <form action={formAction} className='flex flex-1 flex-col gap-7 py-8'>
+          <div className='space-y-2.5'>
+            <Label htmlFor='name' className='text-[13px] font-medium'>
+              Nama Barang
+            </Label>
             <Input
               id='name'
               name='name'
               placeholder='Laptop Lenovo ThinkPad X1'
               required
               autoFocus
-              className='h-11'
+              className='h-11 rounded-lg border-zinc-200 text-[14px] dark:border-zinc-800'
             />
           </div>
 
-          <div className='space-y-2'>
-            <Label htmlFor='category'>Kategori</Label>
+          <div className='space-y-2.5'>
+            <Label htmlFor='category' className='text-[13px] font-medium'>
+              Kategori
+            </Label>
             <Select name='category' required>
-              <SelectTrigger id='category' className='h-11'>
+              <SelectTrigger
+                id='category'
+                className='h-11 rounded-lg border-zinc-200 text-[14px] dark:border-zinc-800'
+              >
                 <SelectValue placeholder='Pilih kategori' />
               </SelectTrigger>
               <SelectContent>
@@ -104,8 +113,12 @@ export function AddItemSheet() {
             </Select>
           </div>
 
-          <SheetFooter className='mt-auto'>
-            <Button type='submit' disabled={isPending} className='w-full h-11'>
+          <SheetFooter className='mt-auto pt-4'>
+            <Button
+              type='submit'
+              disabled={isPending}
+              className='w-full h-11 rounded-lg text-[14px] font-medium active:scale-[0.98] transition-transform'
+            >
               {isPending ? (
                 <>
                   <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />

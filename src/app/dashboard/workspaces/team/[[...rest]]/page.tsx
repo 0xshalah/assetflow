@@ -1,17 +1,13 @@
-'use client';
-
 import PageContainer from '@/components/layout/page-container';
-import { OrganizationProfile } from '@clerk/nextjs';
-import { teamInfoContent } from '@/config/infoconfig';
+
+export const metadata = { title: 'Dashboard: Team' };
 
 export default function TeamPage() {
   return (
-    <PageContainer
-      pageTitle='Team Management'
-      pageDescription='Manage your workspace team, members, roles, security and more.'
-      infoContent={teamInfoContent}
-    >
-      <OrganizationProfile />
+    <PageContainer pageTitle='Team' pageDescription='Feature not available — Clerk removed.'>
+      <div className='text-muted-foreground py-12 text-center'>
+        Team management will be available with Supabase Auth.
+      </div>
     </PageContainer>
   );
 }

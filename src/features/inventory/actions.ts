@@ -1,9 +1,10 @@
 'use server';
 
 import { db } from '@/db';
-import { items, type NewItem, type ItemStatus } from '@/db/schema/items';
+import { items, type ItemStatus } from '@/db/schema/items';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { createItemSchema, updateItemSchema } from './schemas';
 
 export type ActionResult = {
   success: boolean;
@@ -28,7 +29,6 @@ export async function getItems(filters?: {
     query = query.where(eq(items.category, filters.category));
   }
 
-  // For search, we use ilike if available; drizzle supports it via sql
   if (filters?.search) {
     const { ilike } = await import('drizzle-orm');
     query = query.where(ilike(items.name, `%${filters.search}%`));
@@ -46,11 +46,18 @@ export async function getItemById(id: string) {
 }
 
 /**
- * Create a new item.
+ * Create a new item with Zod validation.
  */
-export async function createItem(data: NewItem): Promise<ActionResult> {
+export async function createItem(data: unknown): Promise<ActionResult> {
+  const parsed = createItemSchema.safeParse(data);
+
+  if (!parsed.success) {
+    const firstError = parsed.error.errors[0]?.message ?? 'Input tidak valid.';
+    return { success: false, message: firstError };
+  }
+
   try {
-    await db.insert(items).values(data);
+    await db.insert(items).values(parsed.data);
     revalidatePath('/dashboard/inventory');
     return { success: true, message: 'Item berhasil ditambahkan.' };
   } catch (error) {
@@ -60,14 +67,22 @@ export async function createItem(data: NewItem): Promise<ActionResult> {
 }
 
 /**
- * Update an existing item.
+ * Update an existing item with Zod validation.
  */
-export async function updateItem(
-  id: string,
-  data: Partial<Pick<NewItem, 'name' | 'category' | 'status'>>
-): Promise<ActionResult> {
+export async function updateItem(id: string, data: unknown): Promise<ActionResult> {
+  if (!id || typeof id !== 'string') {
+    return { success: false, message: 'ID tidak valid.' };
+  }
+
+  const parsed = updateItemSchema.safeParse(data);
+
+  if (!parsed.success) {
+    const firstError = parsed.error.errors[0]?.message ?? 'Input tidak valid.';
+    return { success: false, message: firstError };
+  }
+
   try {
-    await db.update(items).set(data).where(eq(items.id, id));
+    await db.update(items).set(parsed.data).where(eq(items.id, id));
     revalidatePath('/dashboard/inventory');
     return { success: true, message: 'Item berhasil diperbarui.' };
   } catch (error) {
@@ -80,12 +95,19 @@ export async function updateItem(
  * Delete an item by ID.
  */
 export async function deleteItem(id: string): Promise<ActionResult> {
+  if (!id || typeof id !== 'string') {
+    return { success: false, message: 'ID tidak valid.' };
+  }
+
   try {
     await db.delete(items).where(eq(items.id, id));
     revalidatePath('/dashboard/inventory');
     return { success: true, message: 'Item berhasil dihapus.' };
   } catch (error) {
     console.error('Failed to delete item:', error);
-    return { success: false, message: 'Gagal menghapus item. Pastikan item tidak sedang dipinjam.' };
+    return {
+      success: false,
+      message: 'Gagal menghapus item. Pastikan item tidak sedang dipinjam.'
+    };
   }
 }
