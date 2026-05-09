@@ -7,7 +7,7 @@ import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { createLoanSchema, loanIdSchema } from './schemas';
 import { logger } from '@/lib/logger';
-import { requireAdmin } from '@/lib/auth';
+import { requireAdmin, requireAuth } from '@/lib/auth';
 
 export type ActionResult = {
   success: boolean;
@@ -15,9 +15,11 @@ export type ActionResult = {
 };
 
 /**
- * Fetch all loans with joined item data.
+ * Fetch all loans with joined item data. Requires authentication.
  */
 export async function getLoans() {
+  await requireAuth();
+
   return db
     .select({
       id: loans.id,
@@ -85,12 +87,18 @@ export async function createLoan(data: unknown): Promise<ActionResult> {
     });
     return { success: true, message: 'Peminjaman berhasil dicatat.' };
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Gagal mencatat peminjaman.';
-    if (message.includes('Forbidden') || message.includes('Unauthorized')) {
-      return { success: false, message };
+    const rawMessage = error instanceof Error ? error.message : '';
+    // Only pass safe, known error messages to client
+    if (rawMessage.includes('Forbidden') || rawMessage.includes('Unauthorized')) {
+      return { success: false, message: rawMessage };
     }
+    const safeMessages: Record<string, string> = {
+      'Item tidak ditemukan.': 'Item tidak ditemukan.',
+      'Item tidak tersedia untuk dipinjam.': 'Item tidak tersedia untuk dipinjam.'
+    };
+    const clientMessage = safeMessages[rawMessage] ?? 'Gagal mencatat peminjaman.';
     logger.error('Failed to create loan', { error: String(error) });
-    return { success: false, message };
+    return { success: false, message: clientMessage };
   }
 }
 
@@ -136,12 +144,17 @@ export async function returnLoan(loanId: string): Promise<ActionResult> {
     logger.audit('loan.returned', { loanId: parsed.data.loanId, by: admin.email });
     return { success: true, message: 'Barang berhasil dikembalikan.' };
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Gagal memproses pengembalian.';
-    if (message.includes('Forbidden') || message.includes('Unauthorized')) {
-      return { success: false, message };
+    const rawMessage = error instanceof Error ? error.message : '';
+    if (rawMessage.includes('Forbidden') || rawMessage.includes('Unauthorized')) {
+      return { success: false, message: rawMessage };
     }
+    const safeMessages: Record<string, string> = {
+      'Data peminjaman tidak ditemukan.': 'Data peminjaman tidak ditemukan.',
+      'Peminjaman sudah dikembalikan sebelumnya.': 'Peminjaman sudah dikembalikan sebelumnya.'
+    };
+    const clientMessage = safeMessages[rawMessage] ?? 'Gagal memproses pengembalian.';
     logger.error('Failed to return loan', { error: String(error), loanId });
-    return { success: false, message };
+    return { success: false, message: clientMessage };
   }
 }
 

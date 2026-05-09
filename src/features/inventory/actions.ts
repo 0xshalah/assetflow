@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { createItemSchema, updateItemSchema } from './schemas';
 import { logger } from '@/lib/logger';
-import { requireAdmin } from '@/lib/auth';
+import { requireAdmin, requireAuth } from '@/lib/auth';
 
 export type ActionResult = {
   success: boolean;
@@ -14,13 +14,15 @@ export type ActionResult = {
 };
 
 /**
- * Fetch all items with optional filtering.
+ * Fetch all items with optional filtering. Requires authentication.
  */
 export async function getItems(filters?: {
   status?: ItemStatus;
   category?: string;
   search?: string;
 }) {
+  await requireAuth();
+
   let query = db.select().from(items).$dynamic();
 
   if (filters?.status) {

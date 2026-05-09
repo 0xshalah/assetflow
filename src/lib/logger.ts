@@ -2,6 +2,8 @@
  * Structured logger for AssetFlow.
  * Outputs JSON logs for easy parsing by log aggregators (Vercel Logs, Datadog, etc.)
  *
+ * SECURITY: Never log PII fields (borrowerContact, passwords, tokens).
+ *
  * Usage:
  *   logger.info('Item created', { itemId: '...', userId: '...' });
  *   logger.error('Failed to create loan', { error: e.message, itemId: '...' });
