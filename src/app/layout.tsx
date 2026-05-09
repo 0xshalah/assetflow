@@ -54,13 +54,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       >
         <NextTopLoader color='var(--primary)' showSpinner={false} />
         <NuqsAdapter>
-          <ThemeProvider
-            attribute='class'
-            defaultTheme='system'
-            enableSystem
-            disableTransitionOnChange
-            enableColorScheme
-          >
+          <ThemeProvider attribute='class' defaultTheme='system' enableSystem enableColorScheme>
             <Providers activeThemeValue={themeToApply}>
               <Toaster />
               {children}

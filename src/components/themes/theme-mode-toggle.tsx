@@ -63,7 +63,6 @@ export function ThemeModeToggle() {
         });
       } else {
         // Switching to DARK mode → "Eclipse" (old layer shrinks inward)
-        // Ensure no data-transition-mode so old stays on top
         delete document.documentElement.dataset.transitionMode;
 
         const transition = document.startViewTransition(() => {
@@ -76,6 +75,7 @@ export function ThemeModeToggle() {
             {
               duration: 400,
               easing: 'ease-out',
+              fill: 'forwards',
               pseudoElement: '::view-transition-old(root)'
             }
           );

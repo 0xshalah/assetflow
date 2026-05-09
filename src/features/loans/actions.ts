@@ -6,6 +6,7 @@ import { loans } from '@/db/schema/loans';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { createLoanSchema, loanIdSchema } from './schemas';
+import { logger } from '@/lib/logger';
 
 export type ActionResult = {
   success: boolean;
@@ -79,9 +80,13 @@ export async function createLoan(data: unknown): Promise<ActionResult> {
 
     revalidatePath('/dashboard/loans');
     revalidatePath('/dashboard/inventory');
+    logger.audit('loan.created', {
+      itemId: parsed.data.itemId,
+      borrower: parsed.data.borrowerName
+    });
     return { success: true, message: 'Peminjaman berhasil dicatat.' };
   } catch (error) {
-    console.error('Failed to create loan:', error);
+    logger.error('Failed to create loan', { error: String(error), input: parsed.data });
     const message = error instanceof Error ? error.message : 'Gagal mencatat peminjaman.';
     return { success: false, message };
   }
@@ -129,9 +134,10 @@ export async function returnLoan(loanId: string): Promise<ActionResult> {
 
     revalidatePath('/dashboard/loans');
     revalidatePath('/dashboard/inventory');
+    logger.audit('loan.returned', { loanId: parsed.data.loanId });
     return { success: true, message: 'Barang berhasil dikembalikan.' };
   } catch (error) {
-    console.error('Failed to return loan:', error);
+    logger.error('Failed to return loan', { error: String(error), loanId: parsed.data.loanId });
     const message = error instanceof Error ? error.message : 'Gagal memproses pengembalian.';
     return { success: false, message };
   }
@@ -168,9 +174,10 @@ export async function deleteLoan(loanId: string): Promise<ActionResult> {
 
     revalidatePath('/dashboard/loans');
     revalidatePath('/dashboard/inventory');
+    logger.audit('loan.deleted', { loanId: parsed.data.loanId });
     return { success: true, message: 'Data peminjaman berhasil dihapus.' };
   } catch (error) {
-    console.error('Failed to delete loan:', error);
+    logger.error('Failed to delete loan', { error: String(error), loanId: parsed.data.loanId });
     return { success: false, message: 'Gagal menghapus data peminjaman.' };
   }
 }

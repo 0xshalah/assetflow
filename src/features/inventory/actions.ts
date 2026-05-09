@@ -5,6 +5,7 @@ import { items, type ItemStatus } from '@/db/schema/items';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { createItemSchema, updateItemSchema } from './schemas';
+import { logger } from '@/lib/logger';
 
 export type ActionResult = {
   success: boolean;
@@ -59,9 +60,10 @@ export async function createItem(data: unknown): Promise<ActionResult> {
   try {
     await db.insert(items).values(parsed.data);
     revalidatePath('/dashboard/inventory');
+    logger.audit('item.created', { name: parsed.data.name, category: parsed.data.category });
     return { success: true, message: 'Item berhasil ditambahkan.' };
   } catch (error) {
-    console.error('Failed to create item:', error);
+    logger.error('Failed to create item', { error: String(error), input: parsed.data });
     return { success: false, message: 'Gagal menambahkan item.' };
   }
 }
@@ -84,9 +86,10 @@ export async function updateItem(id: string, data: unknown): Promise<ActionResul
   try {
     await db.update(items).set(parsed.data).where(eq(items.id, id));
     revalidatePath('/dashboard/inventory');
+    logger.audit('item.updated', { itemId: id, changes: parsed.data });
     return { success: true, message: 'Item berhasil diperbarui.' };
   } catch (error) {
-    console.error('Failed to update item:', error);
+    logger.error('Failed to update item', { error: String(error), itemId: id });
     return { success: false, message: 'Gagal memperbarui item.' };
   }
 }
@@ -102,9 +105,10 @@ export async function deleteItem(id: string): Promise<ActionResult> {
   try {
     await db.delete(items).where(eq(items.id, id));
     revalidatePath('/dashboard/inventory');
+    logger.audit('item.deleted', { itemId: id });
     return { success: true, message: 'Item berhasil dihapus.' };
   } catch (error) {
-    console.error('Failed to delete item:', error);
+    logger.error('Failed to delete item', { error: String(error), itemId: id });
     return {
       success: false,
       message: 'Gagal menghapus item. Pastikan item tidak sedang dipinjam.'
