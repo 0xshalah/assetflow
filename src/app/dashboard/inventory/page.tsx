@@ -1,6 +1,6 @@
 import PageContainer from '@/components/layout/page-container';
 import { InventoryTable } from '@/features/inventory/components/inventory-table';
-import { AddItemSheet } from '@/features/inventory/components/add-item-sheet';
+import { AdminAddItemButton } from '@/features/inventory/components/admin-add-item-button';
 import { getItems } from '@/features/inventory/actions';
 
 export const metadata = {
@@ -13,8 +13,8 @@ export default async function InventoryPage() {
   return (
     <PageContainer
       pageTitle='Inventory'
-      pageDescription='Kelola daftar barang dan aset perusahaan.'
-      pageHeaderAction={<AddItemSheet />}
+      pageDescription='Daftar barang dan aset perusahaan.'
+      pageHeaderAction={<AdminAddItemButton />}
     >
       <InventoryTable data={items} />
     </PageContainer>

@@ -7,6 +7,7 @@ import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { createLoanSchema, loanIdSchema } from './schemas';
 import { logger } from '@/lib/logger';
+import { requireAdmin } from '@/lib/auth';
 
 export type ActionResult = {
   success: boolean;
@@ -35,21 +36,18 @@ export async function getLoans() {
 }
 
 /**
- * Create a new loan — atomic transaction with Zod validation:
- * 1. Validate input
- * 2. Verify item is available
- * 3. Insert loan record with status 'active'
- * 4. Update item status to 'borrowed'
+ * Create a new loan — atomic transaction with Zod validation. Admin only.
  */
 export async function createLoan(data: unknown): Promise<ActionResult> {
-  const parsed = createLoanSchema.safeParse(data);
-
-  if (!parsed.success) {
-    const firstError = parsed.error.errors[0]?.message ?? 'Input tidak valid.';
-    return { success: false, message: firstError };
-  }
-
   try {
+    const admin = await requireAdmin();
+    const parsed = createLoanSchema.safeParse(data);
+
+    if (!parsed.success) {
+      const firstError = parsed.error.errors[0]?.message ?? 'Input tidak valid.';
+      return { success: false, message: firstError };
+    }
+
     await db.transaction(async (tx) => {
       // Verify item is available
       const [item] = await tx
@@ -82,30 +80,31 @@ export async function createLoan(data: unknown): Promise<ActionResult> {
     revalidatePath('/dashboard/inventory');
     logger.audit('loan.created', {
       itemId: parsed.data.itemId,
-      borrower: parsed.data.borrowerName
+      borrower: parsed.data.borrowerName,
+      by: admin.email
     });
     return { success: true, message: 'Peminjaman berhasil dicatat.' };
   } catch (error) {
-    logger.error('Failed to create loan', { error: String(error), input: parsed.data });
     const message = error instanceof Error ? error.message : 'Gagal mencatat peminjaman.';
+    if (message.includes('Forbidden') || message.includes('Unauthorized')) {
+      return { success: false, message };
+    }
+    logger.error('Failed to create loan', { error: String(error) });
     return { success: false, message };
   }
 }
 
 /**
- * Mark a loan as returned — atomic transaction:
- * 1. Validate loan ID
- * 2. Update loan status to 'returned' and set return_date
- * 3. Update item status back to 'available'
+ * Mark a loan as returned — atomic transaction. Admin only.
  */
 export async function returnLoan(loanId: string): Promise<ActionResult> {
-  const parsed = loanIdSchema.safeParse({ loanId });
-
-  if (!parsed.success) {
-    return { success: false, message: 'Loan ID tidak valid.' };
-  }
-
   try {
+    const admin = await requireAdmin();
+    const parsed = loanIdSchema.safeParse({ loanId });
+
+    if (!parsed.success) {
+      return { success: false, message: 'Loan ID tidak valid.' };
+    }
     await db.transaction(async (tx) => {
       const [loan] = await tx
         .select({ itemId: loans.itemId, status: loans.status })
@@ -134,26 +133,29 @@ export async function returnLoan(loanId: string): Promise<ActionResult> {
 
     revalidatePath('/dashboard/loans');
     revalidatePath('/dashboard/inventory');
-    logger.audit('loan.returned', { loanId: parsed.data.loanId });
+    logger.audit('loan.returned', { loanId: parsed.data.loanId, by: admin.email });
     return { success: true, message: 'Barang berhasil dikembalikan.' };
   } catch (error) {
-    logger.error('Failed to return loan', { error: String(error), loanId: parsed.data.loanId });
     const message = error instanceof Error ? error.message : 'Gagal memproses pengembalian.';
+    if (message.includes('Forbidden') || message.includes('Unauthorized')) {
+      return { success: false, message };
+    }
+    logger.error('Failed to return loan', { error: String(error), loanId });
     return { success: false, message };
   }
 }
 
 /**
- * Delete a loan record (admin only, for data correction).
+ * Delete a loan record. Admin only.
  */
 export async function deleteLoan(loanId: string): Promise<ActionResult> {
-  const parsed = loanIdSchema.safeParse({ loanId });
-
-  if (!parsed.success) {
-    return { success: false, message: 'Loan ID tidak valid.' };
-  }
-
   try {
+    const admin = await requireAdmin();
+    const parsed = loanIdSchema.safeParse({ loanId });
+
+    if (!parsed.success) {
+      return { success: false, message: 'Loan ID tidak valid.' };
+    }
     await db.transaction(async (tx) => {
       const [loan] = await tx
         .select({ itemId: loans.itemId, status: loans.status })
@@ -174,10 +176,14 @@ export async function deleteLoan(loanId: string): Promise<ActionResult> {
 
     revalidatePath('/dashboard/loans');
     revalidatePath('/dashboard/inventory');
-    logger.audit('loan.deleted', { loanId: parsed.data.loanId });
+    logger.audit('loan.deleted', { loanId: parsed.data.loanId, by: admin.email });
     return { success: true, message: 'Data peminjaman berhasil dihapus.' };
   } catch (error) {
-    logger.error('Failed to delete loan', { error: String(error), loanId: parsed.data.loanId });
+    const message = error instanceof Error ? error.message : 'Gagal menghapus data peminjaman.';
+    if (message.includes('Forbidden') || message.includes('Unauthorized')) {
+      return { success: false, message };
+    }
+    logger.error('Failed to delete loan', { error: String(error), loanId });
     return { success: false, message: 'Gagal menghapus data peminjaman.' };
   }
 }
