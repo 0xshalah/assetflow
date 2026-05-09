@@ -29,6 +29,7 @@ import { useMediaQuery } from '@/hooks/use-media-query';
 import { useFilteredNavGroups } from '@/hooks/use-nav';
 import { signOut } from '@/features/auth/actions';
 import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -166,7 +167,12 @@ export default function AppSidebar() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => signOut()}>
+                <DropdownMenuItem
+                  onClick={() => {
+                    toast.success('Berhasil logout.');
+                    signOut();
+                  }}
+                >
                   <Icons.logout className='mr-2 h-4 w-4' />
                   Logout
                 </DropdownMenuItem>

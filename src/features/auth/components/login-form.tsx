@@ -33,6 +33,7 @@ export function LoginForm() {
       return;
     }
 
+    toast.success('Berhasil login.');
     router.push('/dashboard/overview');
     router.refresh();
   }
