@@ -5,20 +5,19 @@ import { items } from '@/db/schema/items';
 import { loans } from '@/db/schema/loans';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { createLoanSchema, loanIdSchema } from './schemas';
 import { logger } from '@/lib/logger';
-import { requireAdmin, requireAuth } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth';
+import { z } from 'zod';
 
-export type ActionResult = {
-  success: boolean;
-  message: string;
-};
+export type ActionResult = { success: boolean; message: string };
+
+const loanIdSchema = z.object({ loanId: z.string().uuid() }).strict();
 
 /**
- * Fetch all loans with joined item data. Requires authentication.
+ * Fetch all loans with item name. Admin only.
  */
 export async function getLoans() {
-  await requireAuth();
+  await requireAdmin();
 
   return db
     .select({
@@ -38,81 +37,15 @@ export async function getLoans() {
 }
 
 /**
- * Create a new loan — atomic transaction with Zod validation. Admin only.
- */
-export async function createLoan(data: unknown): Promise<ActionResult> {
-  try {
-    const admin = await requireAdmin();
-    const parsed = createLoanSchema.safeParse(data);
-
-    if (!parsed.success) {
-      const firstError = parsed.error.errors[0]?.message ?? 'Input tidak valid.';
-      return { success: false, message: firstError };
-    }
-
-    await db.transaction(async (tx) => {
-      // Verify item is available
-      const [item] = await tx
-        .select({ status: items.status })
-        .from(items)
-        .where(eq(items.id, parsed.data.itemId))
-        .limit(1);
-
-      if (!item) {
-        throw new Error('Item tidak ditemukan.');
-      }
-
-      if (item.status !== 'available') {
-        throw new Error('Item tidak tersedia untuk dipinjam.');
-      }
-
-      // Insert loan record
-      await tx.insert(loans).values({
-        itemId: parsed.data.itemId,
-        borrowerName: parsed.data.borrowerName,
-        borrowerContact: parsed.data.borrowerContact,
-        status: 'active'
-      });
-
-      // Update item status to borrowed
-      await tx.update(items).set({ status: 'borrowed' }).where(eq(items.id, parsed.data.itemId));
-    });
-
-    revalidatePath('/dashboard/loans');
-    revalidatePath('/dashboard/inventory');
-    logger.audit('loan.created', {
-      itemId: parsed.data.itemId,
-      borrower: parsed.data.borrowerName,
-      by: admin.email
-    });
-    return { success: true, message: 'Peminjaman berhasil dicatat.' };
-  } catch (error) {
-    const rawMessage = error instanceof Error ? error.message : '';
-    // Only pass safe, known error messages to client
-    if (rawMessage.includes('Forbidden') || rawMessage.includes('Unauthorized')) {
-      return { success: false, message: rawMessage };
-    }
-    const safeMessages: Record<string, string> = {
-      'Item tidak ditemukan.': 'Item tidak ditemukan.',
-      'Item tidak tersedia untuk dipinjam.': 'Item tidak tersedia untuk dipinjam.'
-    };
-    const clientMessage = safeMessages[rawMessage] ?? 'Gagal mencatat peminjaman.';
-    logger.error('Failed to create loan', { error: String(error) });
-    return { success: false, message: clientMessage };
-  }
-}
-
-/**
- * Mark a loan as returned — atomic transaction. Admin only.
+ * Mark a loan as returned. Admin only.
+ * Restores item quantity +1.
  */
 export async function returnLoan(loanId: string): Promise<ActionResult> {
   try {
     const admin = await requireAdmin();
     const parsed = loanIdSchema.safeParse({ loanId });
+    if (!parsed.success) return { success: false, message: 'ID tidak valid.' };
 
-    if (!parsed.success) {
-      return { success: false, message: 'Loan ID tidak valid.' };
-    }
     await db.transaction(async (tx) => {
       const [loan] = await tx
         .select({ itemId: loans.itemId, status: loans.status })
@@ -120,83 +53,40 @@ export async function returnLoan(loanId: string): Promise<ActionResult> {
         .where(eq(loans.id, parsed.data.loanId))
         .limit(1);
 
-      if (!loan) {
-        throw new Error('Data peminjaman tidak ditemukan.');
-      }
-
-      if (loan.status === 'returned') {
-        throw new Error('Peminjaman sudah dikembalikan sebelumnya.');
-      }
+      if (!loan) throw new Error('not_found');
+      if (loan.status === 'returned') throw new Error('already_returned');
 
       await tx
         .update(loans)
-        .set({
-          status: 'returned',
-          returnDate: new Date()
-        })
+        .set({ status: 'returned', returnDate: new Date() })
         .where(eq(loans.id, parsed.data.loanId));
 
-      await tx.update(items).set({ status: 'available' }).where(eq(items.id, loan.itemId));
-    });
-
-    revalidatePath('/dashboard/loans');
-    revalidatePath('/dashboard/inventory');
-    logger.audit('loan.returned', { loanId: parsed.data.loanId, by: admin.email });
-    return { success: true, message: 'Barang berhasil dikembalikan.' };
-  } catch (error) {
-    const rawMessage = error instanceof Error ? error.message : '';
-    if (rawMessage.includes('Forbidden') || rawMessage.includes('Unauthorized')) {
-      return { success: false, message: rawMessage };
-    }
-    const safeMessages: Record<string, string> = {
-      'Data peminjaman tidak ditemukan.': 'Data peminjaman tidak ditemukan.',
-      'Peminjaman sudah dikembalikan sebelumnya.': 'Peminjaman sudah dikembalikan sebelumnya.'
-    };
-    const clientMessage = safeMessages[rawMessage] ?? 'Gagal memproses pengembalian.';
-    logger.error('Failed to return loan', { error: String(error), loanId });
-    return { success: false, message: clientMessage };
-  }
-}
-
-/**
- * Delete a loan record. Admin only.
- */
-export async function deleteLoan(loanId: string): Promise<ActionResult> {
-  try {
-    const admin = await requireAdmin();
-    const parsed = loanIdSchema.safeParse({ loanId });
-
-    if (!parsed.success) {
-      return { success: false, message: 'Loan ID tidak valid.' };
-    }
-    await db.transaction(async (tx) => {
-      const [loan] = await tx
-        .select({ itemId: loans.itemId, status: loans.status })
-        .from(loans)
-        .where(eq(loans.id, parsed.data.loanId))
+      // Restore quantity
+      const [item] = await tx
+        .select({ quantity: items.quantity })
+        .from(items)
+        .where(eq(items.id, loan.itemId))
         .limit(1);
 
-      if (!loan) {
-        throw new Error('Data peminjaman tidak ditemukan.');
+      if (item) {
+        await tx
+          .update(items)
+          .set({ quantity: item.quantity + 1 })
+          .where(eq(items.id, loan.itemId));
       }
-
-      if (loan.status === 'active') {
-        await tx.update(items).set({ status: 'available' }).where(eq(items.id, loan.itemId));
-      }
-
-      await tx.delete(loans).where(eq(loans.id, parsed.data.loanId));
     });
 
     revalidatePath('/dashboard/loans');
     revalidatePath('/dashboard/inventory');
-    logger.audit('loan.deleted', { loanId: parsed.data.loanId, by: admin.email });
-    return { success: true, message: 'Data peminjaman berhasil dihapus.' };
+    logger.audit('loan.returned', { loanId, by: admin.email });
+    return { success: true, message: 'Barang berhasil dikembalikan.' };
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Gagal menghapus data peminjaman.';
-    if (message.includes('Forbidden') || message.includes('Unauthorized')) {
-      return { success: false, message };
-    }
-    logger.error('Failed to delete loan', { error: String(error), loanId });
-    return { success: false, message: 'Gagal menghapus data peminjaman.' };
+    const msg = error instanceof Error ? error.message : '';
+    if (msg.includes('Forbidden') || msg.includes('Unauthorized'))
+      return { success: false, message: msg };
+    if (msg === 'not_found') return { success: false, message: 'Data tidak ditemukan.' };
+    if (msg === 'already_returned') return { success: false, message: 'Sudah dikembalikan.' };
+    logger.error('Failed to return loan', { error: String(error) });
+    return { success: false, message: 'Gagal memproses pengembalian.' };
   }
 }

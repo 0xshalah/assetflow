@@ -3,16 +3,13 @@ import { items } from './items';
 
 /**
  * Loan status enum values.
- * - active: Peminjaman sedang berlangsung
- * - returned: Barang sudah dikembalikan
- * - overdue: Peminjaman melewati batas waktu
  */
-export const loanStatusValues = ['active', 'returned', 'overdue'] as const;
+export const loanStatusValues = ['active', 'returned'] as const;
 export type LoanStatus = (typeof loanStatusValues)[number];
 
 /**
  * Table: loans
- * Menyimpan transaksi peminjaman barang.
+ * Peminjaman barang (dikembalikan nanti oleh admin).
  */
 export const loans = pgTable('loans', {
   id: uuid('id').primaryKey().defaultRandom(),

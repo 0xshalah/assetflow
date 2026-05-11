@@ -3,65 +3,55 @@
 import { db } from '@/db';
 import { items } from '@/db/schema/items';
 import { loans } from '@/db/schema/loans';
-import { eq, count, desc } from 'drizzle-orm';
+import { pickups } from '@/db/schema/pickups';
+import { eq, count, sql } from 'drizzle-orm';
+import { requireAdmin } from '@/lib/auth';
 
 export interface DashboardMetrics {
-  totalItems: number;
-  borrowedItems: number;
+  totalElektrik: number;
+  totalMekanik: number;
+  totalFacility: number;
+  outOfStock: number;
   activeLoans: number;
-  overdueLoans: number;
-}
-
-export interface RecentLoan {
-  id: string;
-  itemName: string;
-  borrowerName: string;
-  loanDate: Date;
-  status: string;
+  totalPickups: number;
 }
 
 /**
- * Get dashboard overview metrics.
+ * Get dashboard overview metrics. Admin only.
  */
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
-  const [totalResult] = await db.select({ value: count() }).from(items);
-  const [borrowedResult] = await db
-    .select({ value: count() })
+  await requireAdmin();
+
+  const [elektrik] = await db
+    .select({ value: sql<number>`COALESCE(SUM(${items.quantity}), 0)` })
     .from(items)
-    .where(eq(items.status, 'borrowed'));
-  const [activeResult] = await db
+    .where(eq(items.category, 'elektrik'));
+
+  const [mekanik] = await db
+    .select({ value: sql<number>`COALESCE(SUM(${items.quantity}), 0)` })
+    .from(items)
+    .where(eq(items.category, 'mekanik'));
+
+  const [facility] = await db
+    .select({ value: sql<number>`COALESCE(SUM(${items.quantity}), 0)` })
+    .from(items)
+    .where(eq(items.category, 'facility'));
+
+  const [outOfStock] = await db.select({ value: count() }).from(items).where(eq(items.quantity, 0));
+
+  const [activeLoans] = await db
     .select({ value: count() })
     .from(loans)
     .where(eq(loans.status, 'active'));
-  const [overdueResult] = await db
-    .select({ value: count() })
-    .from(loans)
-    .where(eq(loans.status, 'overdue'));
+
+  const [totalPickups] = await db.select({ value: count() }).from(pickups);
 
   return {
-    totalItems: totalResult.value,
-    borrowedItems: borrowedResult.value,
-    activeLoans: activeResult.value,
-    overdueLoans: overdueResult.value
+    totalElektrik: Number(elektrik.value),
+    totalMekanik: Number(mekanik.value),
+    totalFacility: Number(facility.value),
+    outOfStock: outOfStock.value,
+    activeLoans: activeLoans.value,
+    totalPickups: totalPickups.value
   };
-}
-
-/**
- * Get the 5 most recent loan transactions.
- */
-export async function getRecentLoans(): Promise<RecentLoan[]> {
-  const result = await db
-    .select({
-      id: loans.id,
-      itemName: items.name,
-      borrowerName: loans.borrowerName,
-      loanDate: loans.loanDate,
-      status: loans.status
-    })
-    .from(loans)
-    .innerJoin(items, eq(loans.itemId, items.id))
-    .orderBy(desc(loans.loanDate))
-    .limit(5);
-
-  return result;
 }

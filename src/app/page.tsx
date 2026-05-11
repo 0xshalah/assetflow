@@ -3,7 +3,6 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 
 export default async function LandingPage() {
-  // If already logged in, go straight to dashboard
   const supabase = await createClient();
   const {
     data: { user }
@@ -16,12 +15,12 @@ export default async function LandingPage() {
   return (
     <div className='flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-zinc-50 to-white px-6 dark:from-zinc-950 dark:to-zinc-900'>
       {/* Logo */}
-      <div className='mb-6 flex items-center gap-3'>
-        <div className='flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-900 dark:bg-zinc-100'>
+      <div className='mb-6'>
+        <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-900 dark:bg-zinc-100'>
           <svg
             xmlns='http://www.w3.org/2000/svg'
-            width='20'
-            height='20'
+            width='24'
+            height='24'
             viewBox='0 0 24 24'
             fill='none'
             stroke='currentColor'
@@ -40,36 +39,36 @@ export default async function LandingPage() {
 
       {/* Headline */}
       <h1
-        className='text-center text-4xl font-semibold tracking-tight text-zinc-900 sm:text-5xl dark:text-zinc-50'
+        className='text-center text-4xl font-semibold text-zinc-900 sm:text-5xl dark:text-zinc-50'
         style={{ letterSpacing: '-0.035em' }}
       >
         AssetFlow
       </h1>
 
       {/* Tagline */}
-      <p className='mt-4 max-w-md text-center text-[17px] text-zinc-500 dark:text-zinc-400'>
-        Inventory & Loan Tracking for IT Operations.
+      <p className='mt-4 max-w-sm text-center text-[17px] text-zinc-500 dark:text-zinc-400'>
+        Inventory, Peminjaman & Pengambilan Barang.
       </p>
 
-      {/* CTAs */}
-      <div className='mt-10 flex items-center gap-3'>
+      {/* Two Options */}
+      <div className='mt-12 flex flex-col gap-4 sm:flex-row'>
         <Link
           href='/auth/sign-in'
-          className='inline-flex h-11 items-center justify-center rounded-full bg-zinc-900 px-7 text-[14px] font-medium text-zinc-50 transition-transform active:scale-[0.97] dark:bg-zinc-100 dark:text-zinc-900'
+          className='inline-flex h-14 w-52 items-center justify-center rounded-2xl bg-zinc-900 text-[15px] font-medium text-zinc-50 transition-transform active:scale-[0.97] dark:bg-zinc-100 dark:text-zinc-900'
         >
-          Sign In
+          Admin
         </Link>
         <Link
-          href='/auth/sign-up'
-          className='inline-flex h-11 items-center justify-center rounded-full border border-zinc-200 px-7 text-[14px] font-medium text-zinc-700 transition-transform active:scale-[0.97] dark:border-zinc-800 dark:text-zinc-300'
+          href='/guest'
+          className='inline-flex h-14 w-52 items-center justify-center rounded-2xl border border-zinc-200 text-[15px] font-medium text-zinc-700 transition-transform active:scale-[0.97] dark:border-zinc-800 dark:text-zinc-300'
         >
-          Create Account
+          Non-Admin
         </Link>
       </div>
 
       {/* Footer */}
       <p className='absolute bottom-8 text-[12px] text-zinc-400 dark:text-zinc-600'>
-        Built for IT Support & Asset Management
+        IT Support & Asset Management
       </p>
     </div>
   );

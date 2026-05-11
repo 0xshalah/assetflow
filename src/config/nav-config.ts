@@ -1,8 +1,7 @@
 import { NavGroup } from '@/types';
 
 /**
- * AssetFlow navigation configuration.
- * Simplified from the template — only relevant pages for loan tracking.
+ * Admin sidebar navigation.
  */
 export const navGroups: NavGroup[] = [
   {
@@ -25,11 +24,19 @@ export const navGroups: NavGroup[] = [
         items: []
       },
       {
-        title: 'Loans',
+        title: 'Data Peminjaman',
         url: '/dashboard/loans',
         icon: 'loans',
         isActive: false,
         shortcut: ['l', 'l'],
+        items: []
+      },
+      {
+        title: 'Data Pengambilan',
+        url: '/dashboard/pickups',
+        icon: 'product',
+        isActive: false,
+        shortcut: ['p', 'p'],
         items: []
       }
     ]

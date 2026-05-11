@@ -1,23 +1,22 @@
-import { pgTable, uuid, text, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, integer, timestamp } from 'drizzle-orm/pg-core';
 
 /**
- * Item status enum values.
- * - available: Barang tersedia untuk dipinjam
- * - borrowed: Barang sedang dipinjam
- * - maintenance: Barang sedang dalam perawatan
+ * Item category enum values.
  */
-export const itemStatusValues = ['available', 'borrowed', 'maintenance'] as const;
-export type ItemStatus = (typeof itemStatusValues)[number];
+export const itemCategoryValues = ['elektrik', 'mekanik', 'facility'] as const;
+export type ItemCategory = (typeof itemCategoryValues)[number];
 
 /**
  * Table: items
- * Menyimpan daftar barang/aset yang dikelola.
+ * Inventory barang dengan quantity tracking.
  */
 export const items = pgTable('items', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
-  category: text('category').notNull(),
-  status: text('status', { enum: itemStatusValues }).notNull().default('available'),
+  category: text('category', { enum: itemCategoryValues }).notNull(),
+  quantity: integer('quantity').notNull().default(0),
+  supplier: text('supplier').notNull(),
+  receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 });
 
