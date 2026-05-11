@@ -1,25 +1,18 @@
 import PageContainer from '@/components/layout/page-container';
 import { LoansTable } from '@/features/loans/components/loans-table';
-import { AdminLoanActions } from '@/features/loans/components/admin-loan-actions';
 import { getLoans } from '@/features/loans/actions';
-import { getItems } from '@/features/inventory/actions';
 
-export const metadata = {
-  title: 'Dashboard: Loans'
-};
+export const metadata = { title: 'Data Peminjaman — AssetFlow' };
 
 export default async function LoansPage() {
-  const [loansData, allItems] = await Promise.all([getLoans(), getItems()]);
-
-  const availableItems = allItems.filter((item) => item.status === 'available');
+  const loans = await getLoans();
 
   return (
     <PageContainer
-      pageTitle='Loan Tracking'
-      pageDescription='Pantau peminjaman dan pengembalian barang.'
-      pageHeaderAction={<AdminLoanActions availableItems={availableItems} loansData={loansData} />}
+      pageTitle='Data Peminjaman'
+      pageDescription='Riwayat peminjaman barang. Tandai barang yang sudah dikembalikan.'
     >
-      <LoansTable data={loansData} />
+      <LoansTable data={loans} />
     </PageContainer>
   );
 }

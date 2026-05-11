@@ -1,11 +1,9 @@
 import PageContainer from '@/components/layout/page-container';
 import { InventoryTable } from '@/features/inventory/components/inventory-table';
-import { AdminAddItemButton } from '@/features/inventory/components/admin-add-item-button';
+import { AddItemSheet } from '@/features/inventory/components/add-item-sheet';
 import { getItems } from '@/features/inventory/actions';
 
-export const metadata = {
-  title: 'Dashboard: Inventory'
-};
+export const metadata = { title: 'Inventory — AssetFlow' };
 
 export default async function InventoryPage() {
   const items = await getItems();
@@ -13,8 +11,8 @@ export default async function InventoryPage() {
   return (
     <PageContainer
       pageTitle='Inventory'
-      pageDescription='Daftar barang dan aset perusahaan.'
-      pageHeaderAction={<AdminAddItemButton />}
+      pageDescription='Kelola stok barang elektrik, mekanik, dan facility.'
+      pageHeaderAction={<AddItemSheet />}
     >
       <InventoryTable data={items} />
     </PageContainer>
