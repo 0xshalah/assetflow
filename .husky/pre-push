@@ -1,0 +1,2 @@
+# Skip build check on push (bun not available)
+# npm run build
