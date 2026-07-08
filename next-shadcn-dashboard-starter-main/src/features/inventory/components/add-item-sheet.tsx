@@ -33,15 +33,14 @@ interface AddItemSheetProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-function padTime(value: string): string {
-  const parts = value.split('T');
-  if (parts.length === 2) return parts[1].slice(0, 5);
-  return value.split('T')[1]?.slice(0, 5) ?? '';
-}
-
 function toDateInput(date: Date | string): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   return d.toISOString().split('T')[0];
+}
+
+function toTimeInput(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 export function AddItemSheet({ editItem, open: externalOpen, onOpenChange: externalOnOpenChange }: AddItemSheetProps = {}) {
@@ -207,7 +206,7 @@ export function AddItemSheet({ editItem, open: externalOpen, onOpenChange: exter
             <Input
               name='receivedTime'
               type='time'
-              defaultValue={editItem ? padTime(editItem.receivedAt.toString()) : currentTime}
+              defaultValue={editItem ? toTimeInput(new Date(editItem.receivedAt)) : currentTime}
               required
               className='h-11 rounded-lg border-zinc-200 text-[14px] dark:border-zinc-800'
             />

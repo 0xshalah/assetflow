@@ -57,7 +57,7 @@ export async function createPickup(data: unknown) {
   const parsed = createPickupSchema.safeParse(data);
 
   if (!parsed.success) {
-    const msg = parsed.error.errors[0]?.message ?? 'Input tidak valid.';
+    const msg = parsed.error.issues[0]?.message ?? 'Input tidak valid.';
     return { success: false, message: msg };
   }
 
@@ -114,7 +114,7 @@ export async function createGuestLoan(data: unknown) {
   const parsed = createLoanSchema.safeParse(data);
 
   if (!parsed.success) {
-    const msg = parsed.error.errors[0]?.message ?? 'Input tidak valid.';
+    const msg = parsed.error.issues[0]?.message ?? 'Input tidak valid.';
     return { success: false, message: msg };
   }
 
