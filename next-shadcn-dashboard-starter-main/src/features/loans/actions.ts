@@ -1,7 +1,6 @@
 'use server';
 
 import { db } from '@/db';
-import { items } from '@/db/schema/items';
 import { loans } from '@/db/schema/loans';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -13,33 +12,11 @@ export type ActionResult = { success: boolean; message: string };
 
 const loanIdSchema = z.object({ loanId: z.string().uuid() }).strict();
 
-/**
- * Fetch all loans with item name. Admin only.
- */
 export async function getLoans() {
   await requireAdmin();
-
-  return db
-    .select({
-      id: loans.id,
-      itemId: loans.itemId,
-      itemName: items.name,
-      itemCategory: items.category,
-      borrowerName: loans.borrowerName,
-      borrowerContact: loans.borrowerContact,
-      loanDate: loans.loanDate,
-      returnDate: loans.returnDate,
-      status: loans.status
-    })
-    .from(loans)
-    .innerJoin(items, eq(loans.itemId, items.id))
-    .orderBy(loans.loanDate);
+  return db.select().from(loans).orderBy(loans.loanDate);
 }
 
-/**
- * Mark a loan as returned. Admin only.
- * Restores item quantity +1.
- */
 export async function returnLoan(loanId: string): Promise<ActionResult> {
   try {
     const admin = await requireAdmin();
@@ -48,7 +25,7 @@ export async function returnLoan(loanId: string): Promise<ActionResult> {
 
     await db.transaction(async (tx) => {
       const [loan] = await tx
-        .select({ itemId: loans.itemId, status: loans.status })
+        .select({ status: loans.status })
         .from(loans)
         .where(eq(loans.id, parsed.data.loanId))
         .limit(1);
@@ -60,24 +37,9 @@ export async function returnLoan(loanId: string): Promise<ActionResult> {
         .update(loans)
         .set({ status: 'returned', returnDate: new Date() })
         .where(eq(loans.id, parsed.data.loanId));
-
-      // Restore quantity
-      const [item] = await tx
-        .select({ quantity: items.quantity })
-        .from(items)
-        .where(eq(items.id, loan.itemId))
-        .limit(1);
-
-      if (item) {
-        await tx
-          .update(items)
-          .set({ quantity: item.quantity + 1 })
-          .where(eq(items.id, loan.itemId));
-      }
     });
 
     revalidatePath('/dashboard/loans');
-    revalidatePath('/dashboard/inventory');
     logger.audit('loan.returned', { loanId, by: admin.email });
     return { success: true, message: 'Barang berhasil dikembalikan.' };
   } catch (error) {

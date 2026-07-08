@@ -20,21 +20,40 @@ import {
   SheetTrigger
 } from '@/components/ui/sheet';
 import { Icons } from '@/components/icons';
-import { createItem } from '../actions';
+import { createItem, updateItem } from '../actions';
 import { toast } from 'sonner';
 import { useActionState, useState } from 'react';
+import type { Item } from '@/db/schema/items';
 
 const initialState = { success: false, message: '' };
 
-export function AddItemSheet() {
-  const [open, setOpen] = useState(false);
+interface AddItemSheetProps {
+  editItem?: Item;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+function padTime(value: string): string {
+  const parts = value.split('T');
+  if (parts.length === 2) return parts[1].slice(0, 5);
+  return value.split('T')[1]?.slice(0, 5) ?? '';
+}
+
+function toDateInput(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toISOString().split('T')[0];
+}
+
+export function AddItemSheet({ editItem, open: externalOpen, onOpenChange: externalOnOpenChange }: AddItemSheetProps = {}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = externalOpen ?? internalOpen;
+  const setOpen = externalOnOpenChange ?? setInternalOpen;
+  const isEditing = !!editItem;
 
   const [_state, formAction, isPending] = useActionState(
     async (_prev: typeof initialState, formData: FormData) => {
       const dateVal = formData.get('receivedDate') as string;
       const timeVal = formData.get('receivedTime') as string;
-
-      // Combine date and time into ISO string
       const receivedAt = dateVal && timeVal ? `${dateVal}T${timeVal}:00` : dateVal;
 
       const data = {
@@ -60,7 +79,9 @@ export function AddItemSheet() {
         return { success: false, message: 'Semua field wajib diisi.' };
       }
 
-      const result = await createItem(data);
+      const result = isEditing
+        ? await updateItem(editItem.id, data)
+        : await createItem(data);
 
       if (result.success) {
         toast.success(result.message);
@@ -74,54 +95,56 @@ export function AddItemSheet() {
     initialState
   );
 
-  // Get today's date as default
   const today = new Date().toISOString().split('T')[0];
   const currentTime = new Date().toTimeString().slice(0, 5);
 
+  const triggerButton = isEditing ? null : (
+    <SheetTrigger asChild>
+      <Button size='sm' className='rounded-full px-4 text-[13px] font-medium'>
+        <Icons.add className='mr-1.5 h-3.5 w-3.5' />
+        Barang Masuk
+      </Button>
+    </SheetTrigger>
+  );
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button size='sm' className='rounded-full px-4 text-[13px] font-medium'>
-          <Icons.add className='mr-1.5 h-3.5 w-3.5' />
-          Barang Masuk
-        </Button>
-      </SheetTrigger>
+      {triggerButton}
       <SheetContent side='right' className='sm:max-w-[440px] overflow-y-auto'>
         <SheetHeader>
           <SheetTitle className='text-xl font-semibold' style={{ letterSpacing: '-0.02em' }}>
-            Input Barang Masuk
+            {isEditing ? 'Edit Barang' : 'Input Barang Masuk'}
           </SheetTitle>
           <SheetDescription className='text-[14px]'>
-            Catat barang baru yang masuk ke inventory.
+            {isEditing ? 'Perbarui data barang yang sudah ada.' : 'Catat barang baru yang masuk ke inventory.'}
           </SheetDescription>
         </SheetHeader>
 
         <form action={formAction} className='flex flex-1 flex-col gap-4 py-6'>
-          {/* 1. Nama Barang */}
           <div className='space-y-2'>
             <Label className='text-[13px] font-medium'>Nama Barang</Label>
             <Input
               name='name'
               placeholder='Nama barang'
               required
+              defaultValue={editItem?.name}
               className='h-11 rounded-lg border-zinc-200 text-[14px] dark:border-zinc-800'
             />
           </div>
 
-          {/* 2. Spesifikasi */}
           <div className='space-y-2'>
             <Label className='text-[13px] font-medium'>Spesifikasi</Label>
             <Input
               name='specification'
               placeholder='Spesifikasi barang (opsional)'
+              defaultValue={editItem?.specification || ''}
               className='h-11 rounded-lg border-zinc-200 text-[14px] dark:border-zinc-800'
             />
           </div>
 
-          {/* 3. Kategori Barang */}
           <div className='space-y-2'>
             <Label className='text-[13px] font-medium'>Kategori Barang</Label>
-            <Select name='category' required>
+            <Select name='category' required defaultValue={editItem?.category}>
               <SelectTrigger className='h-11 rounded-lg border-zinc-200 text-[14px] dark:border-zinc-800'>
                 <SelectValue placeholder='Pilih kategori' />
               </SelectTrigger>
@@ -133,7 +156,6 @@ export function AddItemSheet() {
             </Select>
           </div>
 
-          {/* 4. Jumlah Barang (Qty) */}
           <div className='space-y-2'>
             <Label className='text-[13px] font-medium'>Jumlah Barang Masuk (Qty)</Label>
             <Input
@@ -142,57 +164,55 @@ export function AddItemSheet() {
               min={1}
               placeholder='10'
               required
+              defaultValue={editItem?.quantity}
               className='h-11 rounded-lg border-zinc-200 text-[14px] dark:border-zinc-800'
             />
           </div>
 
-          {/* 5. Unit */}
           <div className='space-y-2'>
             <Label className='text-[13px] font-medium'>Unit</Label>
             <Input
               name='unit'
               placeholder='pcs, box, meter, dll.'
               required
+              defaultValue={editItem?.unit || ''}
               className='h-11 rounded-lg border-zinc-200 text-[14px] dark:border-zinc-800'
             />
           </div>
 
-          {/* 6. Supplier */}
           <div className='space-y-2'>
             <Label className='text-[13px] font-medium'>Supplier</Label>
             <Input
               name='supplier'
               placeholder='PT. Sumber Jaya'
               required
+              defaultValue={editItem?.supplier}
               className='h-11 rounded-lg border-zinc-200 text-[14px] dark:border-zinc-800'
             />
           </div>
 
-          {/* 7. Tanggal Barang Masuk */}
           <div className='space-y-2'>
             <Label className='text-[13px] font-medium'>Tanggal Barang Masuk</Label>
             <Input
               name='receivedDate'
               type='date'
-              defaultValue={today}
+              defaultValue={editItem ? toDateInput(editItem.receivedAt) : today}
               required
               className='h-11 rounded-lg border-zinc-200 text-[14px] dark:border-zinc-800'
             />
           </div>
 
-          {/* 8. Waktu Barang Masuk */}
           <div className='space-y-2'>
             <Label className='text-[13px] font-medium'>Waktu Barang Masuk</Label>
             <Input
               name='receivedTime'
               type='time'
-              defaultValue={currentTime}
+              defaultValue={editItem ? padTime(editItem.receivedAt.toString()) : currentTime}
               required
               className='h-11 rounded-lg border-zinc-200 text-[14px] dark:border-zinc-800'
             />
           </div>
 
-          {/* 9. Jumlah Batas Stok Minimum Barang */}
           <div className='space-y-2'>
             <Label className='text-[13px] font-medium'>Jumlah Batas Stok Minimum Barang</Label>
             <Input
@@ -200,7 +220,7 @@ export function AddItemSheet() {
               type='number'
               min={0}
               placeholder='0'
-              defaultValue={0}
+              defaultValue={editItem?.minimumStock ?? 0}
               className='h-11 rounded-lg border-zinc-200 text-[14px] dark:border-zinc-800'
             />
           </div>

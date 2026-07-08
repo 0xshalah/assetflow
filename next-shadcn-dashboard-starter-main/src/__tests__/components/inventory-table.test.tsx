@@ -46,10 +46,24 @@ jest.mock('@/components/ui/table', () => ({
   )
 }));
 
+jest.mock('@/components/ui/input', () => ({
+  Input: ({
+    value,
+    onChange,
+    placeholder
+  }: {
+    value?: string;
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    placeholder?: string;
+  }) => <input value={value} onChange={onChange} placeholder={placeholder} />
+}));
+
 jest.mock('@/components/icons', () => ({
   Icons: {
     ellipsis: () => <span>...</span>,
-    trash: () => <span>🗑</span>
+    trash: () => <span>🗑</span>,
+    edit: () => <span>✏</span>,
+    search: () => <span>🔍</span>
   }
 }));
 

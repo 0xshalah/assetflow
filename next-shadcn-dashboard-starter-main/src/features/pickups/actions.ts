@@ -7,9 +7,6 @@ import { eq } from 'drizzle-orm';
 import { requireAdmin } from '@/lib/auth';
 import type { ItemCategory } from '@/db/schema/items';
 
-/**
- * Get all pickups by category with item name. Admin only.
- */
 export async function getPickupsByCategory(category: ItemCategory) {
   await requireAdmin();
 
@@ -17,6 +14,7 @@ export async function getPickupsByCategory(category: ItemCategory) {
     .select({
       id: pickups.id,
       itemName: items.name,
+      itemSpecification: items.specification,
       personName: pickups.personName,
       departmentOrigin: pickups.departmentOrigin,
       quantity: pickups.quantity,

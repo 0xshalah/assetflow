@@ -133,7 +133,9 @@ export function PickupSheet({ category, open, onOpenChange }: PickupSheetProps) 
               <SelectContent>
                 {items.map((item) => (
                   <SelectItem key={item.id} value={item.id} disabled={item.quantity <= 0}>
-                    {item.name} {item.quantity <= 0 ? '(Habis)' : `(Stok: ${item.quantity})`}
+                    {item.name}
+                    {item.specification ? ` — ${item.specification}` : ''}
+                    {item.quantity <= 0 ? ' (Habis)' : ''}
                   </SelectItem>
                 ))}
               </SelectContent>

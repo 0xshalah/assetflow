@@ -1,8 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 
-// ─── Mock UI dependencies ────────────────────────────────────────────────────
-
 jest.mock('@/components/ui/tabs', () => ({
   Tabs: ({ children, defaultValue }: React.PropsWithChildren<{ defaultValue?: string }>) => (
     <div data-testid='tabs' data-default={defaultValue}>
@@ -24,8 +22,7 @@ jest.mock('@/components/ui/button', () => ({
   Button: ({
     children,
     disabled,
-    onClick,
-    ...props
+    onClick
   }: React.PropsWithChildren<{
     disabled?: boolean;
     onClick?: () => void;
@@ -58,17 +55,16 @@ jest.mock('xlsx', () => ({
 
 import { PickupsTabs } from '@/features/pickups/components/pickups-tabs';
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
 interface PickupRow {
   id: string;
   itemName: string;
+  itemSpecification: string;
   personName: string;
-  originDepartment: string;
-  releasedBy: string;
-  releaseDepartment: string;
+  departmentOrigin: string;
   quantity: number;
   purpose: string;
+  issuedBy: string;
+  issuerDepartment: string;
   pickedAt: Date;
 }
 
@@ -76,18 +72,17 @@ function makePickup(overrides: Partial<PickupRow> = {}): PickupRow {
   return {
     id: 'p-1',
     itemName: 'Pulpen',
+    itemSpecification: 'Gel ink',
     personName: 'Budi',
-    originDepartment: 'IT',
-    releasedBy: 'Gindo Leonard M. Simanjuntak',
-    releaseDepartment: 'FMD',
+    departmentOrigin: 'IT',
     quantity: 2,
     purpose: 'Meeting',
+    issuedBy: 'Gindo Leonard M. Simanjuntak',
+    issuerDepartment: 'FMD',
     pickedAt: new Date('2024-03-10T10:00:00Z'),
     ...overrides
   };
 }
-
-// ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe('PickupsTabs', () => {
   it('renders all 3 tab triggers', () => {
@@ -115,7 +110,7 @@ describe('PickupsTabs', () => {
 
   it('renders "Belum ada data" for empty categories', () => {
     render(<PickupsTabs lemariC01={[]} lemariC02={[]} lemariC03={[]} />);
-    const emptyMessages = screen.getAllByText(/Belum ada data pengambilan/i);
+    const emptyMessages = screen.getAllByText(/Belum ada data/i);
     expect(emptyMessages.length).toBe(3);
   });
 
@@ -137,9 +132,7 @@ describe('PickupsTabs', () => {
     const pickups = [makePickup()];
     render(<PickupsTabs lemariC01={pickups} lemariC02={[]} lemariC03={[]} />);
     const buttons = screen.getAllByTestId('download-btn');
-    // First button (Lemari C-01) should be enabled
     expect(buttons[0]).not.toBeDisabled();
-    // Others still disabled
     expect(buttons[1]).toBeDisabled();
     expect(buttons[2]).toBeDisabled();
   });
@@ -158,7 +151,7 @@ describe('PickupsTabs', () => {
   });
 
   it('shows origin department and purpose in table', () => {
-    const c02 = [makePickup({ originDepartment: 'Finance', purpose: 'Audit' })];
+    const c02 = [makePickup({ departmentOrigin: 'Finance', purpose: 'Audit' })];
     render(<PickupsTabs lemariC01={[]} lemariC02={c02} lemariC03={[]} />);
     expect(screen.getByText('Finance')).toBeInTheDocument();
     expect(screen.getByText('Audit')).toBeInTheDocument();

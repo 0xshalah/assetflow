@@ -14,6 +14,7 @@ import {
 interface PickupRow {
   id: string;
   itemName: string;
+  itemSpecification: string;
   personName: string;
   departmentOrigin: string;
   quantity: number;
@@ -32,26 +33,28 @@ interface PickupsTabsProps {
 function downloadExcel(data: PickupRow[], filename: string) {
   import('xlsx').then((XLSX) => {
     const rows = data.map((row) => ({
-      'Nama Barang': row.itemName,
-      'Nama Pengambil': row.personName,
-      'Dept. Asal': row.departmentOrigin,
-      Jumlah: row.quantity,
-      Keperluan: row.purpose,
-      'Dikeluarkan Oleh': row.issuedBy,
-      'Dept. Pengeluaran': row.issuerDepartment,
-      'Tanggal & Waktu': new Intl.DateTimeFormat('id-ID', {
+      'Tanggal': new Intl.DateTimeFormat('id-ID', {
         day: 'numeric',
         month: 'short',
-        year: 'numeric',
+        year: 'numeric'
+      }).format(new Date(row.pickedAt)),
+      'Waktu': new Intl.DateTimeFormat('id-ID', {
         hour: '2-digit',
         minute: '2-digit'
-      }).format(new Date(row.pickedAt))
+      }).format(new Date(row.pickedAt)),
+      'Nama Barang': row.itemName,
+      'Spesifikasi': row.itemSpecification || '-',
+      'Keperluan': row.purpose,
+      'Nama Pengambil': row.personName,
+      'Departemen': row.departmentOrigin,
+      'Jumlah': row.quantity,
+      'Dikeluarkan Oleh': row.issuedBy
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(rows);
     worksheet['!cols'] = [
-      { wch: 24 }, { wch: 22 }, { wch: 14 }, { wch: 8 },
-      { wch: 24 }, { wch: 28 }, { wch: 14 }, { wch: 20 }
+      { wch: 14 }, { wch: 8 }, { wch: 24 }, { wch: 24 },
+      { wch: 24 }, { wch: 22 }, { wch: 14 }, { wch: 8 }, { wch: 28 }
     ];
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Pengambilan');
@@ -87,30 +90,39 @@ function PickupTable({ data, categoryLabel }: { data: PickupRow[]; categoryLabel
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className='text-[12px]'>Barang</TableHead>
-                <TableHead className='text-[12px]'>Pengambil</TableHead>
-                <TableHead className='text-[12px]'>Dept. Asal</TableHead>
-                <TableHead className='text-[12px]'>Qty</TableHead>
+                <TableHead className='text-[12px]'>Tgl Pickup</TableHead>
+                <TableHead className='text-[12px]'>Waktu</TableHead>
+                <TableHead className='text-[12px]'>Nama Barang</TableHead>
+                <TableHead className='text-[12px]'>Spesifikasi</TableHead>
                 <TableHead className='text-[12px]'>Keperluan</TableHead>
+                <TableHead className='text-[12px]'>Pengambil</TableHead>
+                <TableHead className='text-[12px]'>Departemen</TableHead>
+                <TableHead className='text-[12px]'>Qty</TableHead>
                 <TableHead className='text-[12px]'>Dikeluarkan Oleh</TableHead>
-                <TableHead className='text-[12px]'>Tanggal</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.map((row) => (
                 <TableRow key={row.id}>
-                  <TableCell className='font-medium text-[14px]'>{row.itemName}</TableCell>
-                  <TableCell className='text-[14px]'>{row.personName}</TableCell>
-                  <TableCell className='text-[13px] text-muted-foreground'>{row.departmentOrigin}</TableCell>
-                  <TableCell className='text-[14px] tabular-nums'>{row.quantity}</TableCell>
-                  <TableCell className='text-[13px] text-muted-foreground max-w-[140px] truncate'>{row.purpose}</TableCell>
-                  <TableCell className='text-[13px]'>{row.issuedBy}</TableCell>
                   <TableCell className='text-[13px] tabular-nums text-muted-foreground whitespace-nowrap'>
                     {new Intl.DateTimeFormat('id-ID', {
-                      day: 'numeric', month: 'short', year: 'numeric',
+                      day: 'numeric', month: 'short', year: 'numeric'
+                    }).format(new Date(row.pickedAt))}
+                  </TableCell>
+                  <TableCell className='text-[13px] tabular-nums text-muted-foreground'>
+                    {new Intl.DateTimeFormat('id-ID', {
                       hour: '2-digit', minute: '2-digit'
                     }).format(new Date(row.pickedAt))}
                   </TableCell>
+                  <TableCell className='font-medium text-[14px]'>{row.itemName}</TableCell>
+                  <TableCell className='text-[13px] text-muted-foreground max-w-[120px] truncate'>
+                    {row.itemSpecification || '-'}
+                  </TableCell>
+                  <TableCell className='text-[13px] text-muted-foreground max-w-[140px] truncate'>{row.purpose}</TableCell>
+                  <TableCell className='text-[14px]'>{row.personName}</TableCell>
+                  <TableCell className='text-[13px] text-muted-foreground'>{row.departmentOrigin}</TableCell>
+                  <TableCell className='text-[14px] tabular-nums'>{row.quantity}</TableCell>
+                  <TableCell className='text-[13px]'>{row.issuedBy}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

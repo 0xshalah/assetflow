@@ -2,6 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +21,7 @@ import { Icons } from '@/components/icons';
 import type { Item } from '@/db/schema/items';
 import { deleteItem } from '../actions';
 import { toast } from 'sonner';
-import { useTransition } from 'react';
+import { useTransition, useState } from 'react';
 
 const CATEGORY_LABEL: Record<string, string> = {
   'lemari-c01': 'Lemari C-01',
@@ -30,9 +31,10 @@ const CATEGORY_LABEL: Record<string, string> = {
 
 interface InventoryTableProps {
   data: Item[];
+  onEdit?: (item: Item) => void;
 }
 
-function RowAction({ item }: { item: Item }) {
+function RowAction({ item, onEdit }: { item: Item; onEdit?: (item: Item) => void }) {
   const [isPending, startTransition] = useTransition();
 
   function handleDelete() {
@@ -52,6 +54,10 @@ function RowAction({ item }: { item: Item }) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align='end'>
+        <DropdownMenuItem onClick={() => onEdit?.(item)}>
+          <Icons.edit className='mr-2 h-4 w-4' />
+          Edit
+        </DropdownMenuItem>
         <DropdownMenuItem
           onClick={handleDelete}
           className='text-destructive focus:text-destructive'
@@ -64,7 +70,13 @@ function RowAction({ item }: { item: Item }) {
   );
 }
 
-export function InventoryTable({ data }: InventoryTableProps) {
+export function InventoryTable({ data, onEdit }: InventoryTableProps) {
+  const [search, setSearch] = useState('');
+
+  const filtered = search
+    ? data.filter((item) => item.name.toLowerCase().includes(search.toLowerCase()))
+    : data;
+
   if (data.length === 0) {
     return (
       <div className='text-muted-foreground py-16 text-center text-[14px]'>
@@ -74,87 +86,105 @@ export function InventoryTable({ data }: InventoryTableProps) {
   }
 
   return (
-    <div className='rounded-lg border border-zinc-100 dark:border-zinc-800/50'>
-      <Table>
-        <TableHeader>
-          <TableRow className='border-zinc-100 dark:border-zinc-800/50'>
-            <TableHead className='text-[12px] font-medium text-muted-foreground'>
-              Nama Barang
-            </TableHead>
-            <TableHead className='text-[12px] font-medium text-muted-foreground'>
-              Spesifikasi
-            </TableHead>
-            <TableHead className='text-[12px] font-medium text-muted-foreground'>
-              Kategori
-            </TableHead>
-            <TableHead className='text-[12px] font-medium text-muted-foreground'>Stok</TableHead>
-            <TableHead className='text-[12px] font-medium text-muted-foreground'>Unit</TableHead>
-            <TableHead className='text-[12px] font-medium text-muted-foreground'>
-              Supplier
-            </TableHead>
-            <TableHead className='text-[12px] font-medium text-muted-foreground'>
-              Tgl Masuk
-            </TableHead>
-            <TableHead className='w-10' />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((item) => {
-            const isLowStock = item.quantity > 0 && item.quantity <= item.minimumStock;
-            const isOutOfStock = item.quantity === 0;
-            const rowBg = isLowStock ? 'bg-yellow-50 dark:bg-yellow-950/20' : '';
+    <div className='space-y-3'>
+      <div className='relative'>
+        <Icons.search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+        <Input
+          placeholder='Cari nama barang...'
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className='h-10 rounded-lg border-zinc-200 pl-9 text-[14px] dark:border-zinc-800'
+        />
+      </div>
 
-            return (
-              <TableRow
-                key={item.id}
-                className={`border-zinc-100 dark:border-zinc-800/50 ${rowBg}`}
-              >
-                <TableCell className='font-medium text-[14px]' style={{ letterSpacing: '-0.01em' }}>
-                  {item.name}
-                </TableCell>
-                <TableCell className='text-[13px] text-muted-foreground max-w-[120px] truncate'>
-                  {item.specification || '-'}
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant='outline'
-                    className='rounded-full px-2.5 py-0.5 text-[11px] font-medium whitespace-nowrap'
-                  >
-                    {CATEGORY_LABEL[item.category] ?? item.category}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <span
-                    className={`text-[14px] tabular-nums font-medium ${
-                      isOutOfStock
-                        ? 'text-destructive'
-                        : isLowStock
-                          ? 'text-yellow-600 dark:text-yellow-400'
-                          : ''
-                    }`}
-                  >
-                    {item.quantity}
-                  </span>
-                </TableCell>
-                <TableCell className='text-[13px] text-muted-foreground'>
-                  {item.unit || '-'}
-                </TableCell>
-                <TableCell className='text-[13px] text-muted-foreground'>{item.supplier}</TableCell>
-                <TableCell className='text-[13px] tabular-nums text-muted-foreground'>
-                  {new Intl.DateTimeFormat('id-ID', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric'
-                  }).format(new Date(item.receivedAt))}
-                </TableCell>
-                <TableCell>
-                  <RowAction item={item} />
-                </TableCell>
+      {filtered.length === 0 ? (
+        <div className='text-muted-foreground py-12 text-center text-[14px]'>
+          Tidak ada barang yang cocok dengan "{search}".
+        </div>
+      ) : (
+        <div className='rounded-lg border border-zinc-100 dark:border-zinc-800/50'>
+          <Table>
+            <TableHeader>
+              <TableRow className='border-zinc-100 dark:border-zinc-800/50'>
+                <TableHead className='text-[12px] font-medium text-muted-foreground'>
+                  Nama Barang
+                </TableHead>
+                <TableHead className='text-[12px] font-medium text-muted-foreground'>
+                  Spesifikasi
+                </TableHead>
+                <TableHead className='text-[12px] font-medium text-muted-foreground'>
+                  Kategori
+                </TableHead>
+                <TableHead className='text-[12px] font-medium text-muted-foreground'>Stok</TableHead>
+                <TableHead className='text-[12px] font-medium text-muted-foreground'>Unit</TableHead>
+                <TableHead className='text-[12px] font-medium text-muted-foreground'>
+                  Supplier
+                </TableHead>
+                <TableHead className='text-[12px] font-medium text-muted-foreground'>
+                  Tgl Masuk
+                </TableHead>
+                <TableHead className='w-10' />
               </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((item) => {
+                const isLowStock = item.quantity > 0 && item.quantity <= item.minimumStock;
+                const isOutOfStock = item.quantity === 0;
+                const rowBg = isLowStock ? 'bg-yellow-50 dark:bg-yellow-950/20' : '';
+
+                return (
+                  <TableRow
+                    key={item.id}
+                    className={`border-zinc-100 dark:border-zinc-800/50 ${rowBg}`}
+                  >
+                    <TableCell className='font-medium text-[14px]' style={{ letterSpacing: '-0.01em' }}>
+                      {item.name}
+                    </TableCell>
+                    <TableCell className='text-[13px] text-muted-foreground max-w-[120px] truncate'>
+                      {item.specification || '-'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant='outline'
+                        className='rounded-full px-2.5 py-0.5 text-[11px] font-medium whitespace-nowrap'
+                      >
+                        {CATEGORY_LABEL[item.category] ?? item.category}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span
+                        className={`text-[14px] tabular-nums font-medium ${
+                          isOutOfStock
+                            ? 'text-destructive'
+                            : isLowStock
+                              ? 'text-yellow-600 dark:text-yellow-400'
+                              : ''
+                        }`}
+                      >
+                        {item.quantity}
+                      </span>
+                    </TableCell>
+                    <TableCell className='text-[13px] text-muted-foreground'>
+                      {item.unit || '-'}
+                    </TableCell>
+                    <TableCell className='text-[13px] text-muted-foreground'>{item.supplier}</TableCell>
+                    <TableCell className='text-[13px] tabular-nums text-muted-foreground'>
+                      {new Intl.DateTimeFormat('id-ID', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                      }).format(new Date(item.receivedAt))}
+                    </TableCell>
+                    <TableCell>
+                      <RowAction item={item} onEdit={onEdit} />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }

@@ -10,9 +10,6 @@ import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { DEPARTMENT_OPTIONS, ISSUER_OPTIONS } from './constants';
 
-/**
- * Validate the global PIN for non-admin access.
- */
 export async function validatePin(pin: string): Promise<{ success: boolean; message: string }> {
   const correctPin = process.env.NON_ADMIN_PIN;
 
@@ -28,21 +25,9 @@ export async function validatePin(pin: string): Promise<{ success: boolean; mess
   return { success: false, message: 'PIN salah.' };
 }
 
-/**
- * Get available items by category.
- */
 export async function getItemsByCategory(category: ItemCategory) {
   return db.select().from(items).where(eq(items.category, category)).orderBy(items.name);
 }
-
-/**
- * Get all items for loan selection.
- */
-export async function getItemsForLoan() {
-  return db.select().from(items).orderBy(items.name);
-}
-
-// --- Schemas ---
 
 const createPickupSchema = z
   .object({
@@ -59,15 +44,15 @@ const createPickupSchema = z
 
 const createLoanSchema = z
   .object({
-    itemId: z.string().uuid(),
-    borrowerName: z.string().min(1).max(100).trim(),
-    borrowerContact: z.string().min(1).max(100).trim()
+    itemName: z.string().min(1, 'Nama barang wajib diisi.').max(200).trim(),
+    quantity: z.number().int().min(1, 'Jumlah minimal 1.').max(50, 'Maksimal 50.'),
+    purpose: z.string().min(1, 'Keperluan wajib diisi.').max(500).trim(),
+    borrowerName: z.string().min(1, 'Nama peminjam wajib diisi.').max(100).trim(),
+    department: z.string().min(1, 'Departemen wajib diisi.').max(100).trim(),
+    borrowerContact: z.string().min(1, 'Kontak wajib diisi.').max(100).trim()
   })
   .strict();
 
-/**
- * Create a pickup (pengambilan barang). Non-admin action.
- */
 export async function createPickup(data: unknown) {
   const parsed = createPickupSchema.safeParse(data);
 
@@ -125,9 +110,6 @@ export async function createPickup(data: unknown) {
   }
 }
 
-/**
- * Create a loan (peminjaman barang). Non-admin action.
- */
 export async function createGuestLoan(data: unknown) {
   const parsed = createLoanSchema.safeParse(data);
 
@@ -137,43 +119,28 @@ export async function createGuestLoan(data: unknown) {
   }
 
   try {
-    await db.transaction(async (tx) => {
-      const [item] = await tx
-        .select({ quantity: items.quantity })
-        .from(items)
-        .where(eq(items.id, parsed.data.itemId))
-        .limit(1);
-
-      if (!item) throw new Error('Barang tidak ditemukan.');
-      if (item.quantity <= 0) throw new Error('Barang tidak tersedia.');
-
-      await tx.insert(loans).values({
-        itemId: parsed.data.itemId,
-        borrowerName: parsed.data.borrowerName,
-        borrowerContact: parsed.data.borrowerContact,
-        status: 'active'
-      });
-
-      await tx
-        .update(items)
-        .set({ quantity: item.quantity - 1 })
-        .where(eq(items.id, parsed.data.itemId));
+    await db.insert(loans).values({
+      itemName: parsed.data.itemName,
+      quantity: parsed.data.quantity,
+      purpose: parsed.data.purpose,
+      borrowerName: parsed.data.borrowerName,
+      department: parsed.data.department,
+      borrowerContact: parsed.data.borrowerContact,
+      status: 'active'
     });
 
     revalidatePath('/guest/menu');
+    revalidatePath('/dashboard/loans');
     logger.audit('loan.created_by_guest', {
-      itemId: parsed.data.itemId,
+      itemName: parsed.data.itemName,
       borrower: parsed.data.borrowerName
     });
     return { success: true, message: 'Peminjaman berhasil dicatat.' };
   } catch (error) {
-    const raw = error instanceof Error ? error.message : '';
-    const safe: Record<string, string> = {
-      'Barang tidak ditemukan.': 'Barang tidak ditemukan.',
-      'Barang tidak tersedia.': 'Barang tidak tersedia.'
-    };
-    const msg = safe[raw] ?? 'Gagal mencatat peminjaman.';
+    const msg = error instanceof Error ? error.message : '';
+    if (msg.includes('Forbidden') || msg.includes('Unauthorized'))
+      return { success: false, message: msg };
     logger.error('Failed to create guest loan', { error: String(error) });
-    return { success: false, message: msg };
+    return { success: false, message: 'Gagal mencatat peminjaman.' };
   }
 }
