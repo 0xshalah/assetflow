@@ -13,7 +13,7 @@ import {
 import { Icons } from '@/components/icons';
 import { returnLoan } from '../actions';
 import { toast } from 'sonner';
-import { useTransition } from 'react';
+import { useTransition, useMemo } from 'react';
 import type { Loan } from '@/db/schema/loans';
 
 function ReturnButton({ loanId }: { loanId: string }) {
@@ -84,7 +84,10 @@ export function LoansTable({ data }: { data: Loan[] }) {
     );
   }
 
-  const activeCount = data.filter((l) => l.status === 'active').length;
+  const activeCount = useMemo(
+    () => data.filter((l) => l.status === 'active').length,
+    [data]
+  );
 
   return (
     <div className='space-y-3'>

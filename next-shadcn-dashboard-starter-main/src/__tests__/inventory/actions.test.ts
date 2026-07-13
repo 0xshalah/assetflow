@@ -119,7 +119,7 @@ describe('createItem', () => {
     (mockDb.insert as jest.Mock).mockReturnValue(insertChain);
 
     await createItem(validInput);
-    expect(mockRevalidatePath).toHaveBeenCalledWith('/dashboard/inventory');
+    expect(mockRevalidatePath).toHaveBeenCalledWith('/dashboard/inventory', 'page');
   });
 
   it('returns validation error for invalid category', async () => {
@@ -197,7 +197,7 @@ describe('updateItem', () => {
     (mockDb.update as jest.Mock).mockReturnValue(updateChain);
 
     await updateItem(itemId, validUpdate);
-    expect(mockRevalidatePath).toHaveBeenCalledWith('/dashboard/inventory');
+    expect(mockRevalidatePath).toHaveBeenCalledWith('/dashboard/inventory', 'page');
   });
 
   it('returns Unauthorized message when requireAdmin throws Unauthorized', async () => {
@@ -246,7 +246,7 @@ describe('deleteItem', () => {
     (mockDb.delete as jest.Mock).mockReturnValue(deleteChain);
 
     await deleteItem(itemId);
-    expect(mockRevalidatePath).toHaveBeenCalledWith('/dashboard/inventory');
+    expect(mockRevalidatePath).toHaveBeenCalledWith('/dashboard/inventory', 'page');
   });
 
   it('returns Forbidden message when requireAdmin throws Forbidden', async () => {

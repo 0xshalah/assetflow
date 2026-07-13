@@ -7,7 +7,6 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true
   },
 
-  // Security headers
   async headers() {
     return [
       {
@@ -16,7 +15,6 @@ const nextConfig: NextConfig = {
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'X-DNS-Prefetch-Control', value: 'on' },
           { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' }
         ]
@@ -25,9 +23,7 @@ const nextConfig: NextConfig = {
   },
 
   images: {
-    remotePatterns: [
-      { protocol: 'https', hostname: 'img.clerk.com', port: '' }
-    ]
+    remotePatterns: []
   },
 
   transpilePackages: ['geist'],
@@ -39,11 +35,23 @@ const nextConfig: NextConfig = {
 
   // Turbopack-compatible cache
   experimental: {
-    // Optimize server component rendering cache
     staleTimes: {
-      dynamic: 30,  // 30s dynamic route cache
-      static: 180   // 3min static route cache
-    }
+      dynamic: 30,
+      static: 180
+    },
+    optimizePackageImports: [
+      '@radix-ui/react-accordion',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-select',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-tooltip',
+      '@tabler/icons-react',
+      'date-fns',
+      'recharts',
+      'lucide-react'
+    ]
   }
 };
 

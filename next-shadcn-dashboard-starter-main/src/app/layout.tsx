@@ -33,6 +33,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang='en' suppressHydrationWarning data-theme={themeToApply}>
       <head>
+        <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
+        <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
         <script
           dangerouslySetInnerHTML={{
             __html: `

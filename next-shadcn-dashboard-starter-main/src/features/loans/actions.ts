@@ -4,6 +4,7 @@ import { db } from '@/db';
 import { loans } from '@/db/schema/loans';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { cache } from 'react';
 import { logger } from '@/lib/logger';
 import { requireAdmin } from '@/lib/auth';
 import { z } from 'zod';
@@ -12,10 +13,10 @@ export type ActionResult = { success: boolean; message: string };
 
 const loanIdSchema = z.object({ loanId: z.string().uuid() }).strict();
 
-export async function getLoans() {
+export const getLoans = cache(async () => {
   await requireAdmin();
   return db.select().from(loans).orderBy(loans.loanDate);
-}
+});
 
 export async function returnLoan(loanId: string): Promise<ActionResult> {
   try {

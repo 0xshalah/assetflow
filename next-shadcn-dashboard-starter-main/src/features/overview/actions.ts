@@ -5,6 +5,7 @@ import { items } from '@/db/schema/items';
 import { loans } from '@/db/schema/loans';
 import { eq, count, sql, and, gt, lte } from 'drizzle-orm';
 import { requireAdmin } from '@/lib/auth';
+import { cache } from 'react';
 
 export interface DashboardMetrics {
   totalLemariC01: number;
@@ -15,38 +16,39 @@ export interface DashboardMetrics {
   lowStockItems: number;
 }
 
-/**
- * Get dashboard overview metrics. Admin only.
- */
-export async function getDashboardMetrics(): Promise<DashboardMetrics> {
+export const getDashboardMetrics = cache(async (): Promise<DashboardMetrics> => {
   await requireAdmin();
 
-  const [lemariC01] = await db
-    .select({ value: sql<number>`COALESCE(SUM(${items.quantity}), 0)` })
-    .from(items)
-    .where(eq(items.category, 'lemari-c01'));
-
-  const [lemariC02] = await db
-    .select({ value: sql<number>`COALESCE(SUM(${items.quantity}), 0)` })
-    .from(items)
-    .where(eq(items.category, 'lemari-c02'));
-
-  const [lemariC03] = await db
-    .select({ value: sql<number>`COALESCE(SUM(${items.quantity}), 0)` })
-    .from(items)
-    .where(eq(items.category, 'lemari-c03'));
-
-  const [outOfStock] = await db.select({ value: count() }).from(items).where(eq(items.quantity, 0));
-
-  const [activeLoans] = await db
-    .select({ value: count() })
-    .from(loans)
-    .where(eq(loans.status, 'active'));
-
-  const [lowStockItems] = await db
-    .select({ value: count() })
-    .from(items)
-    .where(and(gt(items.quantity, 0), lte(items.quantity, items.minimumStock)));
+  const [
+    [lemariC01],
+    [lemariC02],
+    [lemariC03],
+    [outOfStock],
+    [activeLoans],
+    [lowStockItems]
+  ] = await Promise.all([
+    db
+      .select({ value: sql<number>`COALESCE(SUM(${items.quantity}), 0)` })
+      .from(items)
+      .where(eq(items.category, 'lemari-c01')),
+    db
+      .select({ value: sql<number>`COALESCE(SUM(${items.quantity}), 0)` })
+      .from(items)
+      .where(eq(items.category, 'lemari-c02')),
+    db
+      .select({ value: sql<number>`COALESCE(SUM(${items.quantity}), 0)` })
+      .from(items)
+      .where(eq(items.category, 'lemari-c03')),
+    db.select({ value: count() }).from(items).where(eq(items.quantity, 0)),
+    db
+      .select({ value: count() })
+      .from(loans)
+      .where(eq(loans.status, 'active')),
+    db
+      .select({ value: count() })
+      .from(items)
+      .where(and(gt(items.quantity, 0), lte(items.quantity, items.minimumStock)))
+  ]);
 
   return {
     totalLemariC01: Number(lemariC01.value),
@@ -56,4 +58,4 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     activeLoans: activeLoans.value,
     lowStockItems: lowStockItems.value
   };
-}
+});

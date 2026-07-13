@@ -4,19 +4,17 @@ import { db } from '@/db';
 import { items } from '@/db/schema/items';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { cache } from 'react';
 import { createItemSchema, updateItemSchema } from './schemas';
 import { logger } from '@/lib/logger';
 import { requireAdmin } from '@/lib/auth';
 
 export type ActionResult = { success: boolean; message: string };
 
-/**
- * Fetch all items. Admin only.
- */
-export async function getItems() {
+export const getItems = cache(async () => {
   await requireAdmin();
   return db.select().from(items).orderBy(items.name);
-}
+});
 
 /**
  * Create a new item (barang masuk). Admin only.
@@ -35,8 +33,8 @@ export async function createItem(data: unknown): Promise<ActionResult> {
       ...rest,
       receivedAt: new Date(receivedAt)
     });
-    revalidatePath('/dashboard/inventory');
-    revalidatePath('/dashboard/overview');
+    revalidatePath('/dashboard/inventory', 'page');
+    revalidatePath('/dashboard/overview', 'page');
     logger.audit('item.created', {
       name: parsed.data.name,
       category: parsed.data.category,
@@ -69,8 +67,8 @@ export async function updateItem(id: string, data: unknown): Promise<ActionResul
     const updateData = receivedAt ? { ...rest, receivedAt: new Date(receivedAt) } : rest;
 
     await db.update(items).set(updateData).where(eq(items.id, id));
-    revalidatePath('/dashboard/inventory');
-    revalidatePath('/dashboard/overview');
+    revalidatePath('/dashboard/inventory', 'page');
+    revalidatePath('/dashboard/overview', 'page');
     logger.audit('item.updated', { itemId: id, changes: parsed.data, by: admin.email });
     return { success: true, message: 'Barang berhasil diperbarui.' };
   } catch (error) {
@@ -91,8 +89,8 @@ export async function deleteItem(id: string): Promise<ActionResult> {
     if (!id) return { success: false, message: 'ID tidak valid.' };
 
     await db.delete(items).where(eq(items.id, id));
-    revalidatePath('/dashboard/inventory');
-    revalidatePath('/dashboard/overview');
+    revalidatePath('/dashboard/inventory', 'page');
+    revalidatePath('/dashboard/overview', 'page');
     logger.audit('item.deleted', { itemId: id, by: admin.email });
     return { success: true, message: 'Barang berhasil dihapus.' };
   } catch (error) {
