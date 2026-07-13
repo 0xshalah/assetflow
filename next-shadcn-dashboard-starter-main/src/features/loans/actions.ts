@@ -2,7 +2,7 @@
 
 import { db } from '@/db';
 import { loans } from '@/db/schema/loans';
-import { eq } from 'drizzle-orm';
+import { eq, count } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { cache } from 'react';
 import { logger } from '@/lib/logger';
@@ -13,9 +13,17 @@ export type ActionResult = { success: boolean; message: string };
 
 const loanIdSchema = z.object({ loanId: z.string().uuid() }).strict();
 
-export const getLoans = cache(async () => {
+const LOANS_PER_PAGE = 15;
+
+export const getLoans = cache(async (limit = LOANS_PER_PAGE, offset = 0) => {
   await requireAdmin();
-  return db.select().from(loans).orderBy(loans.loanDate);
+  return db.select().from(loans).orderBy(loans.loanDate).limit(limit).offset(offset);
+});
+
+export const getTotalLoans = cache(async () => {
+  await requireAdmin();
+  const [row] = await db.select({ value: count() }).from(loans);
+  return row.value;
 });
 
 export async function returnLoan(loanId: string): Promise<ActionResult> {

@@ -2,7 +2,7 @@
 
 import { db } from '@/db';
 import { items } from '@/db/schema/items';
-import { eq } from 'drizzle-orm';
+import { eq, count } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { cache } from 'react';
 import { createItemSchema, updateItemSchema } from './schemas';
@@ -11,14 +11,19 @@ import { requireAdmin } from '@/lib/auth';
 
 export type ActionResult = { success: boolean; message: string };
 
-export const getItems = cache(async () => {
+const ITEMS_PER_PAGE = 15;
+
+export const getItems = cache(async (limit = ITEMS_PER_PAGE, offset = 0) => {
   await requireAdmin();
-  return db.select().from(items).orderBy(items.name);
+  return db.select().from(items).orderBy(items.name).limit(limit).offset(offset);
 });
 
-/**
- * Create a new item (barang masuk). Admin only.
- */
+export const getTotalItems = cache(async () => {
+  await requireAdmin();
+  const [row] = await db.select({ value: count() }).from(items);
+  return row.value;
+});
+
 export async function createItem(data: unknown): Promise<ActionResult> {
   try {
     const admin = await requireAdmin();
@@ -51,9 +56,6 @@ export async function createItem(data: unknown): Promise<ActionResult> {
   }
 }
 
-/**
- * Update an item. Admin only.
- */
 export async function updateItem(id: string, data: unknown): Promise<ActionResult> {
   try {
     const admin = await requireAdmin();
@@ -80,9 +82,6 @@ export async function updateItem(id: string, data: unknown): Promise<ActionResul
   }
 }
 
-/**
- * Delete an item. Admin only.
- */
 export async function deleteItem(id: string): Promise<ActionResult> {
   try {
     const admin = await requireAdmin();
