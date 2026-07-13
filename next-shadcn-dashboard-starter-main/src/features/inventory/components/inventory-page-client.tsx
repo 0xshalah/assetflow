@@ -21,10 +21,14 @@ export function InventoryPageClient({ items }: InventoryPageClientProps) {
         <AddItemSheet
           key={editItem?.id ?? 'new'}
           editItem={editItem}
-          open={!!editItem}
-          onOpenChange={(open) => {
-            if (!open) setEditItem(undefined);
-          }}
+          open={editItem ? true : undefined}
+          onOpenChange={
+            editItem
+              ? (open) => {
+                  if (!open) setEditItem(undefined);
+                }
+              : undefined
+          }
         />
       }
     >
