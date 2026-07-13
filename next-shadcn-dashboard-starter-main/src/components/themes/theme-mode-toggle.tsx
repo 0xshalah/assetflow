@@ -11,6 +11,7 @@ import { Kbd } from '@/components/ui/kbd';
 export function ThemeModeToggle() {
   const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
+  const transitioningRef = React.useRef(false);
 
   React.useEffect(() => setMounted(true), []);
 
@@ -20,17 +21,16 @@ export function ThemeModeToggle() {
     (e: React.MouseEvent<HTMLButtonElement>) => {
       const newMode = isDark ? 'light' : 'dark';
 
-      // Fallback for browsers without View Transitions API
-      if (!document.startViewTransition) {
+      if (!document.startViewTransition || transitioningRef.current) {
         setTheme(newMode);
         return;
       }
 
-      // Get click coordinates for the circular reveal origin
+      transitioningRef.current = true;
+
       const x = e.clientX;
       const y = e.clientY;
 
-      // Calculate the max radius to cover the entire viewport
       const maxRadius = Math.hypot(
         Math.max(x, window.innerWidth - x),
         Math.max(y, window.innerHeight - y)
@@ -39,7 +39,6 @@ export function ThemeModeToggle() {
       const expandedClip = `circle(${maxRadius}px at ${x}px ${y}px)`;
       const collapsedClip = `circle(0px at ${x}px ${y}px)`;
 
-      // Switching to LIGHT mode → "Sunrise" (new layer expands outward)
       if (isDark) {
         document.documentElement.dataset.transitionMode = 'sunrise';
 
@@ -60,9 +59,9 @@ export function ThemeModeToggle() {
 
         transition.finished.then(() => {
           delete document.documentElement.dataset.transitionMode;
+          transitioningRef.current = false;
         });
       } else {
-        // Switching to DARK mode → "Eclipse" (old layer shrinks inward)
         delete document.documentElement.dataset.transitionMode;
 
         const transition = document.startViewTransition(() => {
@@ -80,12 +79,15 @@ export function ThemeModeToggle() {
             }
           );
         });
+
+        transition.finished.then(() => {
+          transitioningRef.current = false;
+        });
       }
     },
     [isDark, setTheme]
   );
 
-  // Avoid hydration mismatch
   if (!mounted) {
     return (
       <Button variant='ghost' size='icon' className='size-8'>
